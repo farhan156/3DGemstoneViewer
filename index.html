@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemstone 360° Viewer</title>
+    <style>
+        /* General Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f0f2f5 0%, #ffffff 100%); /* Light grey to white gradient */
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Main Container */
+        .viewer-container {
+            max-width: 600px;
+            width: 100%;
+            background: #ffffff; /* Solid white background */
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); /* Softer shadow */
+        }
+
+        /* Typography */
+        h1 {
+            text-align: center;
+            color: #333; /* Darker grey for main title */
+            margin-bottom: 10px;
+            font-size: 1.8em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #555; /* Medium grey for subtitle */
+            margin-bottom: 25px;
+            font-size: 0.9em;
+        }
+
+        /* Viewer Area */
+        .viewer-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            background: #e0e0e0; /* Light grey background for the canvas area */
+            border-radius: 15px;
+            overflow: hidden;
+            cursor: grab;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05); /* Softer inner shadow */
+        }
+
+        .viewer-wrapper:active {
+            cursor: grabbing;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Loading Indicator */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #667eea; /* Kept original color for visibility */
+            z-index: 10;
+        }
+
+        .spinner {
+            border: 4px solid #e0e0e0; /* Light grey spinner base */
+            border-top: 4px solid #667eea; /* Original blue accent */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Controls Section (New Centering) */
+        .controls-row {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .action-buttons {
+            display: inline-flex;
+            gap: 10px;
+        }
+
+        /* Control Buttons */
+        .control-button {
+            background-color: #8c92a6; /* Soft blue-grey for buttons */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Softer button shadow */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 0;
+            padding: 8px 12px;
+        }
+
+        .control-button:hover {
+            background-color: #6d7486; /* Slightly darker grey on hover */
+        }
+
+        .control-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* SVG Icon Styling */
+        .control-button svg {
+            fill: white;
+            width: 20px;
+            height: 20px;
+            display: block;
+        }
+
+        /* Progress Bar (Hidden) */
+        .progress-bar {
+            display: none;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #a0aec0, #8c92a6); /* Light grey gradient for hidden progress */
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* Info Box */
+        .info-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9fb; /* Very light grey background */
+            border-radius: 10px;
+            border-left: 4px solid #a0aec0; /* Soft blue-grey border accent */
+        }
+
+        .info-box h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+
+        .info-box ol {
+            margin-left: 20px;
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .info-box li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="viewer-container">
+        <div class="viewer-wrapper" id="viewerWrapper">
+            <canvas id="canvas"></canvas>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div>Loading frames...</div>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="controls-row">
+            <div class="action-buttons">
+                <button id="playPauseButton" class="control-button">
+                    <svg id="playPauseIcon" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        </div>
+
+    <script>
+        // SVGs for the Play/Pause button
+        const PLAY_SVG = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+        const PAUSE_SVG = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+
+        // ===== CONFIGURATION =====
+        const CONFIG = {
+            imagePath: 'images/frame_{index}.jpg',  // Change this to your folder path
+            totalFrames: 27,                         // Change to match your frame count
+            startFrame: 1,                           // Usually 1
+            fileExtension: 'jpg',                    // jpg or png
+            indexPadding: 3,                         // Number of digits (001 = 3, 0001 = 4)
+            rotationSpeedMs: 70                      // Time in milliseconds between frames for auto-rotate
+        };
+        // ========================
+
+        class Viewer360 {
+            constructor(config) {
+                this.config = config;
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.wrapper = document.getElementById('viewerWrapper');
+                this.loading = document.getElementById('loading');
+                this.playPauseButton = document.getElementById('playPauseButton');
+                this.playPauseIcon = document.getElementById('playPauseIcon');
+                
+                this.frames = [];
+                this.currentFrame = 0; // 0-indexed
+                this.isDragging = false;
+                this.isRotating = false;
+                this.intervalId = null;
+                this.previousX = 0;
+                
+                this.init();
+            }
+
+            async init() {
+                await this.loadFrames();
+                this.setupCanvas();
+                this.setupEventListeners();
+                this.render();
+                this.loading.style.display = 'none';
+            }
+
+            async loadFrames() {
+                const loadPromises = [];
+                
+                for (let i = 0; i < this.config.totalFrames; i++) {
+                    const img = new Image();
+                    const frameNumber = i + this.config.startFrame;
+                    const paddedIndex = String(frameNumber).padStart(this.config.indexPadding, '0');
+                    const imagePath = this.config.imagePath.replace('{index}', paddedIndex);
+                    
+                    const loadPromise = new Promise((resolve, reject) => {
+                        img.onload = () => {
+                            this.frames[i] = img;
+                            const progress = ((i + 1) / this.config.totalFrames) * 100;
+                            const progressFill = document.getElementById('progressFill');
+                            if(progressFill) progressFill.style.width = progress + '%';
+                            resolve();
+                        };
+                        img.onerror = () => {
+                            console.error(`Failed to load: ${imagePath}`);
+                            reject();
+                        };
+                        img.src = imagePath;
+                    });
+                    
+                    loadPromises.push(loadPromise);
+                }
+
+                try {
+                    await Promise.all(loadPromises);
+                } catch (e) {
+                    alert('Error loading frames. Check console and file paths.');
+                }
+            }
+
+            setupCanvas() {
+                if (this.frames.length > 0) {
+                    const img = this.frames[0];
+                    this.canvas.width = img.width;
+                    this.canvas.height = img.height;
+                }
+            }
+
+            setupEventListeners() {
+                // Mouse events
+                this.wrapper.addEventListener('mousedown', (e) => this.startDrag(e.clientX));
+                document.addEventListener('mousemove', (e) => this.drag(e.clientX));
+                document.addEventListener('mouseup', () => this.stopDrag());
+
+                // Touch events
+                this.wrapper.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.startDrag(e.touches[0].clientX);
+                });
+                document.addEventListener('touchmove', (e) => {
+                    if (this.isDragging) {
+                        this.drag(e.touches[0].clientX);
+                    }
+                });
+                document.addEventListener('touchend', () => this.stopDrag());
+
+                // Control button
+                this.playPauseButton.addEventListener('click', () => {
+                    this.isRotating ? this.stopRotation() : this.startRotation();
+                });
+            }
+
+            startDrag(x) {
+                // Stop rotation when drag starts
+                this.stopRotation(); 
+                this.isDragging = true;
+                this.previousX = x;
+            }
+
+            drag(x) {
+                if (!this.isDragging) return;
+
+                const deltaX = x - this.previousX;
+                const sensitivity = 2;
+                
+                if (Math.abs(deltaX) > sensitivity) {
+                    // FLIPPED LOGIC: Right drag (deltaX > 0) now decreases frame index (rotates left)
+                    const direction = deltaX > 0 ? -1 : 1;
+                    this.currentFrame += direction;
+                    
+                    // Wrap around
+                    if (this.currentFrame >= this.config.totalFrames) {
+                        this.currentFrame = 0;
+                    } else if (this.currentFrame < 0) {
+                        this.currentFrame = this.config.totalFrames - 1;
+                    }
+                    
+                    this.render();
+                    this.previousX = x;
+                }
+            }
+
+            stopDrag() {
+                this.isDragging = false;
+            }
+
+            // --- Auto-Rotation Methods ---
+
+            startRotation() {
+                if (this.isRotating) return;
+                this.isRotating = true;
+                this.playPauseIcon.innerHTML = PAUSE_SVG; 
+                
+                this.intervalId = setInterval(() => {
+                    this.rotateFrame(1);
+                }, this.config.rotationSpeedMs);
+            }
+
+            stopRotation() {
+                if (!this.isRotating) return;
+                this.isRotating = false;
+                this.playPauseIcon.innerHTML = PLAY_SVG; 
+                clearInterval(this.intervalId);
+                this.intervalId = null;
+            }
+
+            rotateFrame(direction) {
+                this.currentFrame += direction;
+                
+                // Wrap around logic
+                if (this.currentFrame >= this.config.totalFrames) {
+                    this.currentFrame = 0;
+                } else if (this.currentFrame < 0) {
+                    this.currentFrame = this.config.totalFrames - 1;
+                }
+                
+                this.render();
+            }
+
+            // --- Rendering ---
+
+            render() {
+                if (this.frames[this.currentFrame]) {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.ctx.drawImage(this.frames[this.currentFrame], 0, 0);
+                }
+            }
+        }
+
+        // Initialize viewer
+        new Viewer360(CONFIG);
+    </script>
+</body>
+</html>
