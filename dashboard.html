@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemstone 360° Generator Platform</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Cormorant+Garamond:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <path d="M16 2L6 10L8 24L16 30L24 24L26 10L16 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="bevel"/>
+                    <path d="M16 2V30M6 10H26M8 24H24" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+                </svg>
+                <span>GEMSTONE FORGE</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="#dashboard" class="nav-item active" data-page="dashboard">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="6" height="6"/>
+                    <rect x="11" y="3" width="6" height="6"/>
+                    <rect x="3" y="11" width="6" height="6"/>
+                    <rect x="11" y="11" width="6" height="6"/>
+                </svg>
+                <span>Dashboard Home</span>
+            </a>
+            
+            <a href="#upload" class="nav-item" data-page="upload">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M10 14V6M10 6L7 9M10 6L13 9"/>
+                    <rect x="4" y="4" width="12" height="12"/>
+                </svg>
+                <span>Upload Gemstone</span>
+            </a>
+            
+            <a href="#generate" class="nav-item" data-page="generate">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="10" cy="10" r="6"/>
+                    <path d="M10 4V2M10 18V16M16 10H18M2 10H4M14.5 5.5L15.9 4.1M4.1 15.9L5.5 14.5M14.5 14.5L15.9 15.9M4.1 4.1L5.5 5.5"/>
+                </svg>
+                <span>Generate 360° Model</span>
+            </a>
+            
+            <a href="#certificates" class="nav-item" data-page="certificates">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="5" y="3" width="10" height="14"/>
+                    <path d="M8 7H12M8 10H12M8 13H10"/>
+                    <circle cx="14" cy="14" r="3"/>
+                </svg>
+                <span>Certificates</span>
+            </a>
+            
+            <a href="#gallery" class="nav-item" data-page="gallery">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="14" height="14"/>
+                    <path d="M3 13L7 9L10 12L17 5"/>
+                </svg>
+                <span>All Gemstones</span>
+            </a>
+            
+            <a href="#settings" class="nav-item" data-page="settings">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="10" cy="10" r="3"/>
+                    <path d="M10 2V4M10 16V18M18 10H16M4 10H2M15.6 4.4L14.2 5.8M5.8 14.2L4.4 15.6M15.6 15.6L14.2 14.2M5.8 5.8L4.4 4.4"/>
+                </svg>
+                <span>Settings</span>
+            </a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <div class="user-avatar">AD</div>
+                <div class="user-info">
+                    <div class="user-name">Admin</div>
+                    <div class="user-role">Platform Manager</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Dashboard Home Page -->
+        <div id="page-dashboard" class="page active">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">Dashboard</h1>
+                    <p class="page-subtitle">Manage your gemstone collection and 360° models</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="8" cy="8" r="6"/>
+                            <path d="M13 13L16 16"/>
+                        </svg>
+                        Search
+                    </button>
+                </div>
+            </header>
+
+            <!-- Quick Actions -->
+            <section class="quick-actions">
+                <h2 class="section-title">Quick Actions</h2>
+                <div class="actions-grid">
+                    <div class="action-card" data-action="upload">
+                        <div class="action-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M12 16V8M12 8L9 11M12 8L15 11"/>
+                                <rect x="5" y="5" width="14" height="14"/>
+                            </svg>
+                        </div>
+                        <h3>Upload Gemstone Images</h3>
+                        <p>Upload 360° rotation frames</p>
+                    </div>
+                    
+                    <div class="action-card" data-action="certificate">
+                        <div class="action-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <rect x="6" y="4" width="12" height="16"/>
+                                <path d="M10 8H14M10 12H14"/>
+                            </svg>
+                        </div>
+                        <h3>Upload Certificate</h3>
+                        <p>Attach certification documents</p>
+                    </div>
+                    
+                    <div class="action-card" data-action="generate">
+                        <div class="action-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <circle cx="12" cy="12" r="8"/>
+                                <path d="M12 6V4M12 20V18"/>
+                            </svg>
+                        </div>
+                        <h3>Generate 360° Model</h3>
+                        <p>Create interactive viewer</p>
+                    </div>
+                    
+                    <div class="action-card" data-action="share">
+                        <div class="action-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M8 12H16M16 12L13 9M16 12L13 15"/>
+                                <circle cx="18" cy="12" r="2"/>
+                                <circle cx="6" cy="12" r="2"/>
+                            </svg>
+                        </div>
+                        <h3>Copy Shareable Link</h3>
+                        <p>Share with customers</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stats Cards -->
+            <section class="stats-section">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Gems Uploaded</div>
+                        <div class="stat-value">248</div>
+                        <div class="stat-change positive">+12 this month</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">360° Models Generated</div>
+                        <div class="stat-value">186</div>
+                        <div class="stat-change positive">+8 this month</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Certificates Attached</div>
+                        <div class="stat-value">203</div>
+                        <div class="stat-change neutral">92% completion</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Active Shared Links</div>
+                        <div class="stat-value">142</div>
+                        <div class="stat-change positive">28 views today</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent Gems Table -->
+            <section class="recent-gems">
+                <h2 class="section-title">Recent Gemstones</h2>
+                <div class="table-container">
+                    <table class="gems-table">
+                        <thead>
+                            <tr>
+                                <th>Gemstone</th>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>360° Model</th>
+                                <th>Certificate</th>
+                                <th>Date</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="gem-thumbnail ruby">
+                                        <div class="gem-facet"></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="gem-name-cell">
+                                        <div class="gem-title">Burmese Ruby</div>
+                                        <div class="gem-specs">3.24 ct · Oval</div>
+                                    </div>
+                                </td>
+                                <td><span class="status-badge completed">Completed</span></td>
+                                <td>
+                                    <button class="btn-icon" title="View 360° Model">
+                                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <circle cx="9" cy="9" r="6"/>
+                                            <circle cx="9" cy="9" r="2"/>
+                                        </svg>
+                                    </button>
+                                </td>
+                                <td>
+                                    <button class="btn-icon" title="View Certificate">
+                                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <rect x="4" y="3" width="10" height="12"/>
+                                            <path d="M7 6H11M7 9H11"/>
+                                        </svg>
+                                    </button>
+                                </td>
+                                <td>Nov 28, 2025</td>
+                                <td>
+                                    <button class="btn-icon" title="More options">
+                                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <circle cx="9" cy="4" r="1"/>
+                                            <circle cx="9" cy="9" r="1"/>
+                                            <circle cx="9" cy="14" r="1"/>
+                                        </svg>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="gem-thumbnail sapphire">
+                                        <div class="gem-facet"></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="gem-name-cell">
+                                        <div class="gem-title">Ceylon Sapphire</div>
+                                        <div class="gem-specs">5.12 ct · Cushion</div>
+                                    </div>
+                                </td>
+                                <td><span class="status-badge processing">Processing</span></td>
+                                <td>
+                                    <button class="btn-icon disabled" disabled>
+                                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <circle cx="9" cy="9" r="6"/>
+                                            <circle cx="9" cy="9" r="2"/>
+                                        </svg>
+                                    </button>
+                                </td>
+                                <td>
+                                    <button class="btn-icon" title="View Certificate">
+                                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <rect x="4" y="3" width="10" height="12"/>
+                                            <path d="M7 6H11M7 9H11"/>
+                                        </svg>
+                                    </button>
+                                </td>
+                                <td>Dec 2, 2025</td>
+                                <td>
+                                    <button class="btn-icon">
+                                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <circle cx="9" cy="4" r="1"/>
+                                            <circle cx="9" cy="9" r="1"/>
+                                            <circle cx="9" cy="14" r="1"/>
+                                        </svg>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="gem-thumbnail emerald">
+                                        <div class="gem-facet"></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="gem-name-cell">
+                                        <div class="gem-title">Colombian Emerald</div>
+                                        <div class="gem-specs">2.88 ct · Emerald Cut</div>
+                                    </div>
+                                </td>
+                                <td><span class="status-badge completed">Completed</span></td>
+                                <td>
+                                    <button class="btn-icon">
+                                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <circle cx="9" cy="9" r="6"/>
+                                            <circle cx="9" cy="9" r="2"/>
+                                        </svg>
+                                    </button>
+                                </td>
+                                <td>
+                                    <button class="btn-icon" title="View Certificate">
+                                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <rect x="4" y="3" width="10" height="12"/>
+                                            <path d="M7 6H11M7 9H11"/>
+                                        </svg>
+                                    </button>
+                                </td>
+                                <td>Nov 30, 2025</td>
+                                <td>
+                                    <button class="btn-icon">
+                                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <circle cx="9" cy="4" r="1"/>
+                                            <circle cx="9" cy="9" r="1"/>
+                                            <circle cx="9" cy="14" r="1"/>
+                                        </svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- Upload Gemstone Page -->
+        <div id="page-upload" class="page">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">Upload Gemstone</h1>
+                    <p class="page-subtitle">Upload 360° rotation frames to create an interactive model</p>
+                </div>
+            </header>
+
+            <div class="upload-container">
+                <div class="upload-section">
+                    <h2 class="section-title">Gemstone Information</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Gemstone Name</label>
+                            <input type="text" class="input" placeholder="e.g., Burmese Ruby">
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <select class="input">
+                                <option>Select type</option>
+                                <option>Ruby</option>
+                                <option>Sapphire</option>
+                                <option>Emerald</option>
+                                <option>Diamond</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Weight (carats)</label>
+                            <input type="text" class="input" placeholder="e.g., 3.24">
+                        </div>
+                        <div class="form-group">
+                            <label>Cut</label>
+                            <input type="text" class="input" placeholder="e.g., Oval, Round, Cushion">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="upload-section">
+                    <h2 class="section-title">360° Rotation Frames</h2>
+                    <div class="upload-dropzone" id="dropzone">
+                        <div class="dropzone-content">
+                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <rect x="8" y="8" width="32" height="32" rx="2"/>
+                                <path d="M24 32V20M24 20L20 24M24 20L28 24"/>
+                                <path d="M16 16L32 16" stroke-opacity="0.3"/>
+                            </svg>
+                            <h3>Drop rotation frames here</h3>
+                            <p>or click to browse files</p>
+                            <div class="dropzone-hint">Supports: JPG, PNG • Recommended: 36-72 frames</div>
+                        </div>
+                        <input type="file" id="fileInput" multiple accept="image/*" hidden>
+                    </div>
+
+                    <div class="frames-preview" id="framesPreview">
+                        <!-- Frames will be dynamically added here -->
+                    </div>
+
+                    <div class="upload-info">
+                        <div class="info-item">
+                            <span class="info-label">Frames uploaded:</span>
+                            <span class="info-value" id="frameCount">0</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Sequence order:</span>
+                            <span class="info-value" id="sequenceStatus">Not verified</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="upload-actions">
+                    <button class="btn btn-secondary">Cancel</button>
+                    <button class="btn btn-primary" id="generateBtn" disabled>
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="9" cy="9" r="6"/>
+                            <path d="M9 5V13M5 9H13"/>
+                        </svg>
+                        Generate 360° Model
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Certificate Upload Page -->
+        <div id="page-certificates" class="page">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">Certificates</h1>
+                    <p class="page-subtitle">Upload and manage gemstone certifications</p>
+                </div>
+            </header>
+
+            <div class="certificate-container">
+                <div class="certificate-upload-section">
+                    <h2 class="section-title">Upload Certificate</h2>
+                    
+                    <div class="form-group">
+                        <label>Link to Gemstone</label>
+                        <select class="input">
+                            <option>Select gemstone</option>
+                            <option>Burmese Ruby - 3.24 ct</option>
+                            <option>Ceylon Sapphire - 5.12 ct</option>
+                            <option>Colombian Emerald - 2.88 ct</option>
+                        </select>
+                    </div>
+
+                    <div class="certificate-dropzone">
+                        <div class="dropzone-content">
+                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <rect x="12" y="8" width="24" height="32" rx="2"/>
+                                <path d="M18 16H30M18 22H30M18 28H24"/>
+                                <circle cx="32" cy="32" r="6"/>
+                                <path d="M32 29V35M29 32H35"/>
+                            </svg>
+                            <h3>Upload Certificate</h3>
+                            <p>PDF, JPG, or PNG format</p>
+                        </div>
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden>
+                    </div>
+
+                    <div class="certificate-preview" id="certPreview" style="display: none;">
+                        <div class="preview-thumbnail">
+                            <div class="preview-icon">PDF</div>
+                        </div>
+                        <div class="preview-info">
+                            <div class="preview-name">certificate_001.pdf</div>
+                            <div class="preview-size">2.4 MB</div>
+                        </div>
+                        <button class="btn-icon">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M4 4L14 14M14 4L4 14"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="certificate-actions">
+                        <button class="btn btn-secondary">Preview Certificate</button>
+                        <button class="btn btn-primary">Save & Link</button>
+                    </div>
+                </div>
+
+                <div class="certificates-list">
+                    <h2 class="section-title">Recent Certificates</h2>
+                    <div class="cert-cards">
+                        <div class="cert-card">
+                            <div class="cert-icon ruby">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="6" y="4" width="12" height="16" rx="1"/>
+                                    <path d="M10 8H14M10 12H14"/>
+                                </svg>
+                            </div>
+                            <div class="cert-details">
+                                <div class="cert-gem">Burmese Ruby</div>
+                                <div class="cert-number">GIA #2318562844</div>
+                            </div>
+                            <button class="btn-icon">
+                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <circle cx="8" cy="8" r="6"/>
+                                    <circle cx="8" cy="8" r="2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Gemstones Gallery Page -->
+        <div id="page-gallery" class="page">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">All Gemstones</h1>
+                    <p class="page-subtitle">Complete collection gallery</p>
+                </div>
+                <div class="header-actions">
+                    <select class="input-filter">
+                        <option>All Status</option>
+                        <option>Completed</option>
+                        <option>Processing</option>
+                        <option>Uploaded</option>
+                    </select>
+                    <select class="input-filter">
+                        <option>All Types</option>
+                        <option>Ruby</option>
+                        <option>Sapphire</option>
+                        <option>Emerald</option>
+                    </select>
+                </div>
+            </header>
+
+            <div class="gallery-grid">
+                <div class="gem-card ruby">
+                    <div class="gem-card-image">
+                        <div class="gem-render">
+                            <div class="gem-facet-display"></div>
+                        </div>
+                        <span class="gem-card-status completed">Completed</span>
+                    </div>
+                    <div class="gem-card-content">
+                        <h3 class="gem-card-title">Burmese Ruby</h3>
+                        <div class="gem-card-specs">3.24 ct · Oval · Myanmar</div>
+                        <div class="gem-card-id">ID: GEM-2024-001</div>
+                        <div class="gem-card-actions">
+                            <button class="btn-card" title="View 360° Model">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <circle cx="8" cy="8" r="5"/>
+                                    <circle cx="8" cy="8" r="2"/>
+                                </svg>
+                                View Model
+                            </button>
+                            <button class="btn-icon" title="Preview Certificate">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="4" y="3" width="8" height="10"/>
+                                </svg>
+                            </button>
+                            <button class="btn-icon" title="Copy Link">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M6 10L10 6M10 6V9M10 6H7"/>
+                                    <rect x="3" y="3" width="10" height="10"/>
+                                </svg>
+                            </button>
+                            <button class="btn-icon" title="Edit Info">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M3 13L8 8L11 5L13 7L10 10L5 15L3 13Z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gem-card sapphire">
+                    <div class="gem-card-image">
+                        <div class="gem-render">
+                            <div class="gem-facet-display"></div>
+                        </div>
+                        <span class="gem-card-status processing">Processing</span>
+                    </div>
+                    <div class="gem-card-content">
+                        <h3 class="gem-card-title">Ceylon Sapphire</h3>
+                        <div class="gem-card-specs">5.12 ct · Cushion · Sri Lanka</div>
+                        <div class="gem-card-id">ID: GEM-2024-002</div>
+                        <div class="gem-card-actions">
+                            <button class="btn-card disabled" disabled>
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <circle cx="8" cy="8" r="5"/>
+                                    <circle cx="8" cy="8" r="2"/>
+                                </svg>
+                                Processing...
+                            </button>
+                            <button class="btn-icon">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="4" y="3" width="8" height="10"/>
+                                </svg>
+                            </button>
+                            <button class="btn-icon disabled" disabled>
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M6 10L10 6M10 6V9M10 6H7"/>
+                                    <rect x="3" y="3" width="10" height="10"/>
+                                </svg>
+                            </button>
+                            <button class="btn-icon">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M3 13L8 8L11 5L13 7L10 10L5 15L3 13Z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gem-card emerald">
+                    <div class="gem-card-image">
+                        <div class="gem-render">
+                            <div class="gem-facet-display"></div>
+                        </div>
+                        <span class="gem-card-status completed">Completed</span>
+                    </div>
+                    <div class="gem-card-content">
+                        <h3 class="gem-card-title">Colombian Emerald</h3>
+                        <div class="gem-card-specs">2.88 ct · Emerald Cut · Colombia</div>
+                        <div class="gem-card-id">ID: GEM-2024-003</div>
+                        <div class="gem-card-actions">
+                            <button class="btn-card">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <circle cx="8" cy="8" r="5"/>
+                                    <circle cx="8" cy="8" r="2"/>
+                                </svg>
+                                View Model
+                            </button>
+                            <button class="btn-icon">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="4" y="3" width="8" height="10"/>
+                                </svg>
+                            </button>
+                            <button class="btn-icon">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M6 10L10 6M10 6V9M10 6H7"/>
+                                    <rect x="3" y="3" width="10" height="10"/>
+                                </svg>
+                            </button>
+                            <button class="btn-icon">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M3 13L8 8L11 5L13 7L10 10L5 15L3 13Z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 360° Model Preview Page -->
+        <div id="page-generate" class="page">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">360° Model Preview</h1>
+                    <p class="page-subtitle">Interactive gemstone viewer</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M6 9H12M12 9L9 6M12 9L9 12"/>
+                        </svg>
+                        Copy Shareable Link
+                    </button>
+                </div>
+            </header>
+
+            <div class="viewer-container">
+                <div class="viewer-main">
+                    <div class="viewer-display">
+                        <div class="viewer-gem">
+                            <div id="gemstone-viewer" class="gemstone-360-viewer">
+                                <!-- 360 viewer will be integrated here -->
+                                <div class="viewer-placeholder ruby">
+                                    <div class="gem-facet-large"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="viewer-controls">
+                            <button class="control-btn" title="Rotate Left">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M13 7L10 10L13 13"/>
+                                    <circle cx="10" cy="10" r="7"/>
+                                </svg>
+                            </button>
+                            <button class="control-btn" title="Reset View">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <circle cx="10" cy="10" r="7"/>
+                                    <circle cx="10" cy="10" r="2"/>
+                                </svg>
+                            </button>
+                            <button class="control-btn" title="Rotate Right">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M7 7L10 10L7 13"/>
+                                    <circle cx="10" cy="10" r="7"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="viewer-hint">Drag to rotate · Scroll to zoom</div>
+                    </div>
+
+                    <div class="viewer-info">
+                        <h2 class="viewer-gem-name">Burmese Ruby</h2>
+                        <div class="viewer-gem-specs">
+                            <span>3.24 carats</span>
+                            <span>Oval Cut</span>
+                            <span>Myanmar Origin</span>
+                        </div>
+                        <div class="viewer-gem-id">GEM-2024-001</div>
+                    </div>
+
+                    <div class="viewer-actions">
+                        <button class="btn btn-secondary">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M9 13V5M5 9L9 5L13 9"/>
+                            </svg>
+                            Replace Frames
+                        </button>
+                        <button class="btn btn-secondary">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M13 5L5 13M9 5H13V9"/>
+                            </svg>
+                            Download Frame Set
+                        </button>
+                    </div>
+                </div>
+
+                <div class="viewer-sidebar">
+                    <div class="sidebar-section">
+                        <h3 class="sidebar-title">Certificate</h3>
+                        <div class="certificate-panel ruby">
+                            <div class="cert-thumbnail">
+                                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="8" y="6" width="16" height="20" rx="1"/>
+                                    <path d="M12 11H20M12 15H20M12 19H16"/>
+                                    <circle cx="22" cy="22" r="4"/>
+                                </svg>
+                            </div>
+                            <div class="cert-details-panel">
+                                <div class="cert-issuer">GIA Certification</div>
+                                <div class="cert-num">Certificate #2318562844</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary btn-full">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <circle cx="8" cy="8" r="6"/>
+                                <circle cx="8" cy="8" r="2"/>
+                            </svg>
+                            Preview Certificate
+                        </button>
+                        <button class="btn btn-secondary btn-full">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M9 13V5M5 9L9 5L13 9"/>
+                            </svg>
+                            Replace Certificate
+                        </button>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <h3 class="sidebar-title">Share</h3>
+                        <div class="share-link-box">
+                            <input type="text" readonly value="gem.view/ruby-3.24ct" class="share-input">
+                            <button class="btn-icon" title="Copy Link">
+                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="5" y="5" width="8" height="8"/>
+                                    <path d="M10 5V3H3V10H5"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="share-stats">
+                            <div class="share-stat">
+                                <span class="stat-num">28</span>
+                                <span class="stat-label">views today</span>
+                            </div>
+                            <div class="share-stat">
+                                <span class="stat-num">142</span>
+                                <span class="stat-label">total views</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

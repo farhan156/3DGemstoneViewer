@@ -1,0 +1,431 @@
+'use client';
+
+import { useState, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
+import toast from 'react-hot-toast';
+import { useGemstoneStore } from '@/store/gemstoneStore';
+import { generateGemstoneId, generateCertificateId } from '@/lib/utils';
+
+interface UploadGemstoneProps {
+  onComplete: () => void;
+}
+
+export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
+  const [gemData, setGemData] = useState({
+    name: '',
+    type: 'ruby' as 'ruby' | 'sapphire' | 'emerald' | 'diamond' | 'other',
+    weight: '',
+    cut: '',
+    origin: '',
+    clarity: '',
+    colorGrade: '',
+  });
+  const [certData, setCertData] = useState({
+    issuer: 'GIA',
+    certificateNumber: '',
+  });
+  
+  const addGemstone = useGemstoneStore((state) => state.addGemstone);
+  const addCertificate = useGemstoneStore((state) => state.addCertificate);
+
+  const onDropImages = useCallback((acceptedFiles: File[]) => {
+    setImageFiles((prev) => [...prev, ...acceptedFiles]);
+    toast.success(`${acceptedFiles.length} image(s) added`);
+  }, []);
+
+  const onDropCertificate = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      setCertificateFile(acceptedFiles[0]);
+      toast.success('Certificate uploaded');
+    }
+  }, []);
+
+  const { getRootProps: getImageRootProps, getInputProps: getImageInputProps, isDragActive: isImageDragActive } = useDropzone({
+    onDrop: onDropImages,
+    accept: {
+      'image/*': ['.png', '.jpg', '.jpeg'],
+    },
+  });
+
+  const { getRootProps: getCertRootProps, getInputProps: getCertInputProps, isDragActive: isCertDragActive } = useDropzone({
+    onDrop: onDropCertificate,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'image/*': ['.png', '.jpg', '.jpeg'],
+    },
+    maxFiles: 1,
+  });
+
+  const handleSubmit = () => {
+    if (imageFiles.length < 36) {
+      toast.error('Please upload at least 36 rotation frames');
+      return;
+    }
+
+    if (!gemData.name || !gemData.weight || !gemData.cut) {
+      toast.error('Please fill in all required gemstone information');
+      return;
+    }
+
+    if (!certificateFile || !certData.certificateNumber) {
+      toast.error('Please upload certificate and enter certificate number');
+      return;
+    }
+
+    const gemId = generateGemstoneId();
+    const certId = generateCertificateId();
+
+    // Create gemstone
+    const newGem = {
+      id: gemId,
+      ...gemData,
+      weight: parseFloat(gemData.weight),
+      status: 'completed' as const,
+      frames: imageFiles.map((f) => URL.createObjectURL(f)),
+      certificateId: certId,
+      shareableLink: `/view/${gemId}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Create certificate
+    const fileExtension = certificateFile.name.split('.').pop()?.toLowerCase();
+    const newCert = {
+      id: certId,
+      gemstoneId: gemId,
+      issuer: certData.issuer,
+      certificateNumber: certData.certificateNumber,
+      fileUrl: URL.createObjectURL(certificateFile),
+      fileType: (certificateFile.type.includes('pdf') ? 'pdf' : fileExtension === 'png' ? 'png' : 'jpg') as 'pdf' | 'jpg' | 'png',
+      fileSize: certificateFile.size,
+      createdAt: new Date().toISOString(),
+    };
+
+    addGemstone(newGem);
+    addCertificate(newCert);
+    
+    toast.success('Gemstone created successfully!');
+    
+    // Reset form
+    setImageFiles([]);
+    setCertificateFile(null);
+    setGemData({
+      name: '',
+      type: 'ruby',
+      weight: '',
+      cut: '',
+      origin: '',
+      clarity: '',
+      colorGrade: '',
+    });
+    setCertData({
+      issuer: 'GIA',
+      certificateNumber: '',
+    });
+    
+    setTimeout(() => {
+      onComplete();
+    }, 1000);
+  };
+
+  return (
+    <div className="max-w-5xl space-y-10">
+      {/* Header */}
+      <header className="pb-6 border-b border-gray-light/50">
+        <h1 className="font-serif text-4xl text-charcoal mb-2 tracking-tight">Upload Gemstone</h1>
+        <p className="text-gray-warm text-sm">Upload 360° rotation frames and certificate to create a complete gemstone entry</p>
+      </header>
+
+      {/* Gemstone Information */}
+      <section className="bg-white rounded-xl border border-gray-light/50 p-6">
+        <h2 className="font-serif text-2xl text-charcoal mb-6">Gemstone Information</h2>
+        <div className="grid grid-cols-2 gap-5">
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-2">Gemstone Name *</label>
+            <input
+              type="text"
+              value={gemData.name}
+              onChange={(e) => setGemData({ ...gemData, name: e.target.value })}
+              placeholder="e.g., Burmese Ruby"
+              className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal placeholder-gray-warm rounded-lg focus:outline-none focus:border-gold transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-2">Type *</label>
+            <select
+              value={gemData.type}
+              onChange={(e) => setGemData({ ...gemData, type: e.target.value as any })}
+              className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal rounded-lg focus:outline-none focus:border-gold transition-all"
+            >
+              <option value="ruby">Ruby</option>
+              <option value="sapphire">Sapphire</option>
+              <option value="emerald">Emerald</option>
+              <option value="diamond">Diamond</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-2">Weight (carats) *</label>
+            <input
+              type="number"
+              step="0.01"
+              value={gemData.weight}
+              onChange={(e) => setGemData({ ...gemData, weight: e.target.value })}
+              placeholder="e.g., 3.24"
+              className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal placeholder-gray-warm rounded-lg focus:outline-none focus:border-gold transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-2">Cut *</label>
+            <input
+              type="text"
+              value={gemData.cut}
+              onChange={(e) => setGemData({ ...gemData, cut: e.target.value })}
+              placeholder="e.g., Oval, Round, Cushion"
+              className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal placeholder-gray-warm rounded-lg focus:outline-none focus:border-gold transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-2">Origin</label>
+            <input
+              type="text"
+              value={gemData.origin}
+              onChange={(e) => setGemData({ ...gemData, origin: e.target.value })}
+              placeholder="e.g., Myanmar, Sri Lanka"
+              className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal placeholder-gray-warm rounded-lg focus:outline-none focus:border-gold transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-2">Clarity</label>
+            <input
+              type="text"
+              value={gemData.clarity}
+              onChange={(e) => setGemData({ ...gemData, clarity: e.target.value })}
+              placeholder="e.g., VVS1, VS1"
+              className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal placeholder-gray-warm rounded-lg focus:outline-none focus:border-gold transition-all"
+            />
+          </div>
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-charcoal mb-2">Color Grade</label>
+            <input
+              type="text"
+              value={gemData.colorGrade}
+              onChange={(e) => setGemData({ ...gemData, colorGrade: e.target.value })}
+              placeholder="e.g., Pigeon Blood, Royal Blue"
+              className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal placeholder-gray-warm rounded-lg focus:outline-none focus:border-gold transition-all"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Upload Rotation Frames */}
+      <section className="bg-white rounded-xl border border-gray-light/50 p-6">
+        <h2 className="font-serif text-2xl text-charcoal mb-6">360° Rotation Frames</h2>
+        <div
+          {...getImageRootProps()}
+          className={`p-12 border-2 border-dashed rounded-xl transition-all cursor-pointer ${
+            isImageDragActive
+              ? 'border-gold bg-gold/5'
+              : 'border-gray-light hover:border-gold/50 hover:bg-cream/30'
+          }`}
+        >
+          <input {...getImageInputProps()} />
+          <div className="text-center">
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 48 48"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="mx-auto mb-6 text-gold"
+            >
+              <rect x="8" y="8" width="32" height="32" rx="4" />
+              <path d="M24 32V20M24 20L20 24M24 20L28 24" />
+              <path d="M16 16L32 16" strokeOpacity="0.3" />
+            </svg>
+            <h3 className="text-lg font-medium text-charcoal mb-2">Drop rotation frames here</h3>
+            <p className="text-gray-warm mb-4">or click to browse files</p>
+            <div className="text-sm text-gray-cool">JPG, PNG • Minimum 36 frames required</div>
+          </div>
+        </div>
+
+        {imageFiles.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center justify-between p-4 bg-cream/30 rounded-lg border border-gray-light/50 mb-4">
+              <div className="flex gap-8">
+                <div>
+                  <span className="text-sm text-gray-warm">Frames uploaded:</span>
+                  <span className="ml-2 text-sm font-semibold text-charcoal">{imageFiles.length}</span>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-warm">Status:</span>
+                  <span className={`ml-2 text-sm font-semibold ${imageFiles.length >= 36 ? 'text-gemstone-emerald' : 'text-gemstone-topaz'}`}>
+                    {imageFiles.length >= 36 ? '✓ Ready' : `Need ${36 - imageFiles.length} more`}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImageFiles([]);
+                  toast.success('All frames cleared');
+                }}
+                className="text-sm text-gray-warm hover:text-charcoal"
+              >
+                Clear all
+              </button>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {imageFiles.map((file, index) => (
+                <div key={index} className="relative w-20 h-20 flex-shrink-0 bg-cream rounded-lg border border-gray-light overflow-hidden">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={`Frame ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute bottom-1 right-1 bg-charcoal/80 text-white text-xs px-2 py-0.5 rounded">
+                    {index + 1}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Upload Certificate */}
+      <section className="bg-white rounded-xl border border-gray-light/50 p-6">
+        <h2 className="font-serif text-2xl text-charcoal mb-6">Certificate</h2>
+        <div className="grid grid-cols-2 gap-5 mb-6">
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-2">Issuer *</label>
+            <select
+              value={certData.issuer}
+              onChange={(e) => setCertData({ ...certData, issuer: e.target.value })}
+              className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal rounded-lg focus:outline-none focus:border-gold transition-all"
+            >
+              <option value="GIA">GIA (Gemological Institute of America)</option>
+              <option value="AGS">AGS (American Gem Society)</option>
+              <option value="IGI">IGI (International Gemological Institute)</option>
+              <option value="EGL">EGL (European Gemological Laboratory)</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-2">Certificate Number *</label>
+            <input
+              type="text"
+              value={certData.certificateNumber}
+              onChange={(e) => setCertData({ ...certData, certificateNumber: e.target.value })}
+              placeholder="e.g., 2318562844"
+              className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal placeholder-gray-warm rounded-lg focus:outline-none focus:border-gold transition-all"
+            />
+          </div>
+        </div>
+        
+        <div
+          {...getCertRootProps()}
+          className={`p-10 border-2 border-dashed rounded-xl transition-all cursor-pointer ${
+            isCertDragActive
+              ? 'border-gold bg-gold/5'
+              : certificateFile
+              ? 'border-gemstone-emerald bg-gemstone-emerald/5'
+              : 'border-gray-light hover:border-gold/50 hover:bg-cream/30'
+          }`}
+        >
+          <input {...getCertInputProps()} />
+          <div className="text-center">
+            {certificateFile ? (
+              <>
+                <svg
+                  width="40"
+                  height="40"
+                  viewBox="0 0 40 40"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="mx-auto mb-4 text-gemstone-emerald"
+                >
+                  <circle cx="20" cy="20" r="15" />
+                  <path d="M14 20L18 24L26 16" strokeWidth="2" />
+                </svg>
+                <h3 className="text-base font-medium text-charcoal mb-1">Certificate Uploaded</h3>
+                <p className="text-sm text-gray-warm">{certificateFile.name}</p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCertificateFile(null);
+                    toast.success('Certificate removed');
+                  }}
+                  className="mt-3 text-sm text-gray-warm hover:text-charcoal underline"
+                >
+                  Remove and upload different file
+                </button>
+              </>
+            ) : (
+              <>
+                <svg
+                  width="40"
+                  height="40"
+                  viewBox="0 0 40 40"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="mx-auto mb-4 text-gold"
+                >
+                  <rect x="10" y="6" width="20" height="28" rx="2" />
+                  <path d="M14 12H26M14 16H26M14 20H22" />
+                  <circle cx="28" cy="28" r="6" />
+                  <path d="M28 32V26M28 26L26 28M28 26L30 28" />
+                </svg>
+                <h3 className="text-base font-medium text-charcoal mb-1">Upload Certificate</h3>
+                <p className="text-sm text-gray-warm">PDF or image file</p>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Actions */}
+      <div className="flex justify-end gap-4 pb-8">
+        <button
+          onClick={() => {
+            setImageFiles([]);
+            setCertificateFile(null);
+            setGemData({
+              name: '',
+              type: 'ruby',
+              weight: '',
+              cut: '',
+              origin: '',
+              clarity: '',
+              colorGrade: '',
+            });
+            setCertData({
+              issuer: 'GIA',
+              certificateNumber: '',
+            });
+            toast.success('Form cleared');
+          }}
+          className="h-11 px-6 bg-white border border-gray-light text-charcoal hover:bg-cream rounded-lg transition-all"
+        >
+          Clear Form
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={imageFiles.length < 36 || !certificateFile || !gemData.name || !gemData.weight || !gemData.cut || !certData.certificateNumber}
+          className="h-11 px-8 bg-gold text-white hover:bg-gold-dark rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-md disabled:shadow-none"
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="9" cy="9" r="7" />
+            <path d="M6 9L8 11L12 7" />
+          </svg>
+          Create Gemstone
+        </button>
+      </div>
+    </div>
+  );
+}
