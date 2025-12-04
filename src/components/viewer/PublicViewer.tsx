@@ -17,6 +17,16 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const imageCache = useRef<HTMLImageElement[]>([]);
   const animationFrame = useRef<number>();
 
+  // Debug: Log certificate data
+  useEffect(() => {
+    console.log('Gemstone data:', {
+      hasCertificateUrl: !!gemstone.certificateUrl,
+      certificateUrl: gemstone.certificateUrl,
+      certificateType: gemstone.certificateType,
+      showCertificate: visibility.showCertificate
+    });
+  }, [gemstone]);
+
   const visibility = gemstone.visibility || {
     showName: true,
     showType: true,

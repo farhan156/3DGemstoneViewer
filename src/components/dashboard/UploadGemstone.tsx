@@ -64,6 +64,13 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
     );
 
     const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('Cloudinary upload error:', data);
+      throw new Error(data.error?.message || 'Upload failed');
+    }
+    
+    console.log('Uploaded to Cloudinary:', data.secure_url);
     return data.secure_url;
   };
 
