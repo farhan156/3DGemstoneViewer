@@ -11,8 +11,11 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
   const dragStartX = useRef(0);
   const viewerRef = useRef<HTMLDivElement>(null);
+  const imageCache = useRef<HTMLImageElement[]>([]);
+  const animationFrame = useRef<number>();
 
   const visibility = gemstone.visibility || {
     showName: true,
@@ -37,13 +40,20 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     if (!isDragging || !gemstone.frames) return;
     
     const delta = e.clientX - dragStartX.current;
-    const sensitivity = 2; // Lower = smoother (more frames shown per pixel moved)
+    const sensitivity = 3; // Optimized sensitivity
     const frameDelta = Math.floor(delta / sensitivity);
     
     if (frameDelta !== 0) {
-      const newFrame = (currentFrame + frameDelta + gemstone.frames.length) % gemstone.frames.length;
-      setCurrentFrame(newFrame);
-      dragStartX.current = e.clientX;
+      // Use requestAnimationFrame for smooth updates
+      if (animationFrame.current) {
+        cancelAnimationFrame(animationFrame.current);
+      }
+      
+      animationFrame.current = requestAnimationFrame(() => {
+        const newFrame = (currentFrame + frameDelta + gemstone.frames.length) % gemstone.frames.length;
+        setCurrentFrame(newFrame);
+        dragStartX.current = e.clientX;
+      });
     }
   };
 
@@ -61,10 +71,41 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     setCurrentFrame((prev) => (prev + 1) % gemstone.frames.length);
   };
 
+  // Preload all images for smooth transitions
+  useEffect(() => {
+    if (!gemstone.frames || gemstone.frames.length === 0) return;
+
+    const loadImages = async () => {
+      const promises = gemstone.frames.map((src) => {
+        return new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.src = src;
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+        });
+      });
+
+      try {
+        imageCache.current = await Promise.all(promises);
+        setImagesLoaded(true);
+      } catch (error) {
+        console.error('Error preloading images:', error);
+        setImagesLoaded(true); // Still show images even if some fail
+      }
+    };
+
+    loadImages();
+  }, [gemstone.frames]);
+
   useEffect(() => {
     const handleGlobalMouseUp = () => setIsDragging(false);
     document.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => document.removeEventListener('mouseup', handleGlobalMouseUp);
+    return () => {
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+      if (animationFrame.current) {
+        cancelAnimationFrame(animationFrame.current);
+      }
+    };
   }, []);
 
   return (
@@ -103,12 +144,26 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
               onMouseLeave={handleMouseUp}
             >
               {gemstone.frames && gemstone.frames.length > 0 ? (
-                <img
-                  src={gemstone.frames[currentFrame]}
-                  alt={`${gemstone.name || 'Gemstone'} - Frame ${currentFrame + 1}`}
-                  className="w-full h-full object-contain select-none"
-                  draggable="false"
-                />
+                <>
+                  {!imagesLoaded && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-cream/50">
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gold"></div>
+                    </div>
+                  )}
+                  <img
+                    src={gemstone.frames[currentFrame]}
+                    alt={`${gemstone.name || 'Gemstone'} - Frame ${currentFrame + 1}`}
+                    className="w-full h-full object-contain select-none"
+                    style={{ 
+                      opacity: imagesLoaded ? 1 : 0,
+                      transition: 'opacity 0.3s ease-in-out',
+                      imageRendering: 'crisp-edges',
+                      willChange: 'transform'
+                    }}
+                    draggable="false"
+                    loading="eager"
+                  />
+                </>
               ) : (
                 <div
                   className="w-96 h-96 relative animate-float"
