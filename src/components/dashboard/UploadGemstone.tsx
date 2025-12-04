@@ -16,7 +16,6 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
   const [certificateFile, setCertificateFile] = useState<File | null>(null);
   const [gemData, setGemData] = useState({
     name: '',
-    type: 'ruby' as 'ruby' | 'sapphire' | 'emerald' | 'diamond' | 'other',
     weight: '',
     cut: '',
     origin: '',
@@ -87,8 +86,8 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
   };
 
   const handleSubmit = async () => {
-    if (imageFiles.length < 36) {
-      toast.error('Please upload at least 36 rotation frames');
+    if (imageFiles.length === 0) {
+      toast.error('Please upload at least 1 rotation frame');
       return;
     }
 
@@ -130,7 +129,6 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
 
       // Add optional gemstone fields only if they have values
       if (gemData.name) newGem.name = gemData.name;
-      if (gemData.type) newGem.type = gemData.type;
       if (gemData.weight) newGem.weight = parseFloat(gemData.weight);
       if (gemData.cut) newGem.cut = gemData.cut;
       if (gemData.origin) newGem.origin = gemData.origin;
@@ -165,7 +163,6 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
       setCertificateFile(null);
       setGemData({
         name: '',
-        type: 'ruby',
         weight: '',
         cut: '',
         origin: '',
@@ -269,20 +266,6 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-2">Type</label>
-            <select
-              value={gemData.type}
-              onChange={(e) => setGemData({ ...gemData, type: e.target.value as any })}
-              className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal rounded-lg focus:outline-none focus:border-gold transition-all"
-            >
-              <option value="ruby">Ruby</option>
-              <option value="sapphire">Sapphire</option>
-              <option value="emerald">Emerald</option>
-              <option value="diamond">Diamond</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div>
             <label className="block text-sm font-medium text-charcoal mb-2">Weight (carats)</label>
             <input
               type="number"
@@ -364,7 +347,7 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
             </svg>
             <h3 className="text-lg font-medium text-charcoal mb-2">Drop rotation frames here</h3>
             <p className="text-gray-warm mb-4">or click to browse files</p>
-            <div className="text-sm text-gray-cool">JPG, PNG • Minimum 36 frames required</div>
+            <div className="text-sm text-gray-cool">JPG, PNG • More frames = smoother rotation (recommended: 36-72 frames)</div>
           </div>
         </div>
 
@@ -378,7 +361,7 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
                 </div>
                 <div>
                   <span className="text-sm text-gray-warm">Status:</span>
-                  <span className={`ml-2 text-sm font-semibold ${imageFiles.length >= 36 ? 'text-gemstone-emerald' : 'text-gemstone-topaz'}`}>
+                  <span className={`ml-2 text-sm font-semibold ${imageFiles.length >= 36 ? 'text-gemstone-emerald' : imageFiles.length >= 12 ? 'text-gemstone-topaz' : 'text-gray-warm'}`}>
                     {imageFiles.length >= 36 ? '✓ Ready' : `Need ${36 - imageFiles.length} more`}
                   </span>
                 </div>
@@ -620,7 +603,6 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
             setCertificateFile(null);
             setGemData({
               name: '',
-              type: 'ruby',
               weight: '',
               cut: '',
               origin: '',

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import { Gemstone, Certificate } from '@/types/gemstone';
 
 interface PublicViewerProps {
@@ -8,6 +9,12 @@ interface PublicViewerProps {
 }
 
 export default function PublicViewer({ gemstone, certificate }: PublicViewerProps) {
+  const [currentFrame, setCurrentFrame] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [showCertificate, setShowCertificate] = useState(false);
+  const dragStartX = useRef(0);
+  const viewerRef = useRef<HTMLDivElement>(null);
+
   const visibility = gemstone.visibility || {
     showName: true,
     showType: true,
@@ -21,6 +28,45 @@ export default function PublicViewer({ gemstone, certificate }: PublicViewerProp
     showCustomerContact: true,
     showCustomerEmail: true,
   };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    dragStartX.current = e.clientX;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !gemstone.frames) return;
+    
+    const delta = e.clientX - dragStartX.current;
+    const sensitivity = 2; // Lower = smoother (more frames shown per pixel moved)
+    const frameDelta = Math.floor(delta / sensitivity);
+    
+    if (frameDelta !== 0) {
+      const newFrame = (currentFrame + frameDelta + gemstone.frames.length) % gemstone.frames.length;
+      setCurrentFrame(newFrame);
+      dragStartX.current = e.clientX;
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const rotateLeft = () => {
+    if (!gemstone.frames) return;
+    setCurrentFrame((prev) => (prev - 1 + gemstone.frames.length) % gemstone.frames.length);
+  };
+
+  const rotateRight = () => {
+    if (!gemstone.frames) return;
+    setCurrentFrame((prev) => (prev + 1) % gemstone.frames.length);
+  };
+
+  useEffect(() => {
+    const handleGlobalMouseUp = () => setIsDragging(false);
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => document.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-pearl">
@@ -47,45 +93,70 @@ export default function PublicViewer({ gemstone, certificate }: PublicViewerProp
         <div className="max-w-screen-2xl w-full grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 items-center">
           {/* 360° Viewer */}
           <div className="relative max-w-3xl mx-auto w-full aspect-square">
-            <div className="w-full h-full bg-cream border border-gray-light/50 rounded-xl flex items-center justify-center cursor-grab active:cursor-grabbing shadow-lg overflow-hidden">
-              <div
-                className="w-96 h-96 relative animate-float"
-                style={{
-                  background: `radial-gradient(circle at center, ${
-                    gemstone.type === 'ruby'
-                      ? 'rgba(196,30,58,0.08)'
-                      : gemstone.type === 'sapphire'
-                      ? 'rgba(15,82,186,0.08)'
-                      : gemstone.type === 'emerald'
-                      ? 'rgba(80,200,120,0.08)'
-                      : 'rgba(212,175,55,0.08)'
-                  }, transparent 70%)`,
-                }}
-              >
-                <div className="w-full h-full transform rotate-45">
-                  <div className="w-full h-full bg-gradient-to-br from-gold/20 via-transparent to-transparent border-3 border-gold/30 relative animate-gem-rotate rounded-lg">
-                    <div className="absolute top-1/5 left-1/5 w-3/5 h-3/5 bg-gradient-to-br from-gold/15 to-transparent border-2 border-gold/20 rounded">
-                      <div className="absolute top-1/4 left-1/4 w-1/2 h-1/2 bg-gradient-to-br from-gold/25 to-transparent border border-gold/15 rounded" />
+            <div 
+              ref={viewerRef}
+              className={`w-full h-full bg-cream border border-gray-light/50 rounded-xl flex items-center justify-center shadow-lg overflow-hidden ${
+                isDragging ? 'cursor-grabbing' : 'cursor-grab'
+              }`}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+            >
+              {gemstone.frames && gemstone.frames.length > 0 ? (
+                <img
+                  src={gemstone.frames[currentFrame]}
+                  alt={`${gemstone.name || 'Gemstone'} - Frame ${currentFrame + 1}`}
+                  className="w-full h-full object-contain select-none"
+                  draggable="false"
+                />
+              ) : (
+                <div
+                  className="w-96 h-96 relative animate-float"
+                  style={{
+                    background: `radial-gradient(circle at center, ${
+                      gemstone.type === 'ruby'
+                        ? 'rgba(196,30,58,0.08)'
+                        : gemstone.type === 'sapphire'
+                        ? 'rgba(15,82,186,0.08)'
+                        : gemstone.type === 'emerald'
+                        ? 'rgba(80,200,120,0.08)'
+                        : 'rgba(212,175,55,0.08)'
+                    }, transparent 70%)`,
+                  }}
+                >
+                  <div className="w-full h-full transform rotate-45">
+                    <div className="w-full h-full bg-gradient-to-br from-gold/20 via-transparent to-transparent border-3 border-gold/30 relative animate-gem-rotate rounded-lg">
+                      <div className="absolute top-1/5 left-1/5 w-3/5 h-3/5 bg-gradient-to-br from-gold/15 to-transparent border-2 border-gold/20 rounded">
+                        <div className="absolute top-1/4 left-1/4 w-1/2 h-1/2 bg-gradient-to-br from-gold/25 to-transparent border border-gold/15 rounded" />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 p-3 bg-white/95 backdrop-blur-md border border-gray-light/50 rounded-lg shadow-lg">
-              <button className="w-10 h-10 border border-gray-light hover:bg-cream text-charcoal transition-all flex items-center justify-center rounded">
+              <button 
+                onClick={rotateLeft}
+                className="w-10 h-10 border border-gray-light hover:bg-cream text-charcoal transition-all flex items-center justify-center rounded"
+                title="Rotate left"
+              >
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path d="M11 5L8 9L11 13" />
                   <circle cx="9" cy="9" r="7" />
                 </svg>
               </button>
-              <button className="w-10 h-10 border border-gray-light hover:bg-cream text-charcoal transition-all flex items-center justify-center rounded">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="9" cy="9" r="7" />
-                  <circle cx="9" cy="9" r="2" />
-                </svg>
-              </button>
-              <button className="w-10 h-10 border border-gray-light hover:bg-cream text-charcoal transition-all flex items-center justify-center rounded">
+              <div className="flex items-center justify-center min-w-[80px] text-xs text-charcoal font-mono">
+                <span className="font-semibold">{currentFrame + 1}</span>
+                <span className="text-gray-warm mx-1">/</span>
+                <span className="text-gray-warm">{gemstone.frames?.length || 0}</span>
+              </div>
+              <button 
+                onClick={rotateRight}
+                className="w-10 h-10 border border-gray-light hover:bg-cream text-charcoal transition-all flex items-center justify-center rounded"
+                title="Rotate right"
+              >
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path d="M7 5L10 9L7 13" />
                   <circle cx="9" cy="9" r="7" />
@@ -94,7 +165,7 @@ export default function PublicViewer({ gemstone, certificate }: PublicViewerProp
             </div>
 
             <div className="absolute top-6 left-1/2 -translate-x-1/2 text-xs text-gray-warm bg-white/90 px-5 py-2 backdrop-blur-sm border border-gray-light/50 rounded-full shadow-sm">
-              Drag to rotate · Scroll to zoom
+              Drag to rotate · Click arrows to navigate
             </div>
           </div>
 
@@ -176,7 +247,10 @@ export default function PublicViewer({ gemstone, certificate }: PublicViewerProp
                     <div className="text-xs font-mono text-gray-warm">Certificate #{certificate.certificateNumber}</div>
                   </div>
                 </div>
-                <button className="w-full h-11 bg-gold text-white font-medium text-sm hover:bg-gold-dark rounded-lg transition-all flex items-center justify-center gap-2 shadow-md">
+                <button 
+                  onClick={() => setShowCertificate(true)}
+                  className="w-full h-11 bg-gold text-white font-medium text-sm hover:bg-gold-dark rounded-lg transition-all flex items-center justify-center gap-2 shadow-md"
+                >
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <circle cx="9" cy="9" r="6" />
                     <circle cx="9" cy="9" r="2" />
@@ -196,6 +270,49 @@ export default function PublicViewer({ gemstone, certificate }: PublicViewerProp
           Platform
         </p>
       </footer>
+
+      {/* Certificate Modal */}
+      {showCertificate && certificate && (
+        <div 
+          className="fixed inset-0 z-50 bg-charcoal/90 backdrop-blur-sm flex items-center justify-center p-8"
+          onClick={() => setShowCertificate(false)}
+        >
+          <div 
+            className="bg-white rounded-xl max-w-4xl max-h-[90vh] overflow-auto shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white border-b border-gray-light/50 p-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-serif font-semibold text-charcoal">{certificate.issuer} Certificate</h3>
+                <p className="text-sm text-gray-warm">Certificate #{certificate.certificateNumber}</p>
+              </div>
+              <button
+                onClick={() => setShowCertificate(false)}
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-cream transition-all text-gray-warm hover:text-charcoal"
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M6 6L14 14M14 6L6 14" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6">
+              {certificate.fileType === 'pdf' ? (
+                <iframe
+                  src={certificate.fileUrl}
+                  className="w-full h-[70vh] rounded-lg border border-gray-light"
+                  title="Certificate Preview"
+                />
+              ) : (
+                <img
+                  src={certificate.fileUrl}
+                  alt="Certificate"
+                  className="w-full h-auto rounded-lg border border-gray-light"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
