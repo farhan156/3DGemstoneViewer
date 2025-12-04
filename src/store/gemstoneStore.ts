@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { Gemstone, Certificate } from '@/types/gemstone';
 
 interface GemstoneStore {
@@ -16,37 +17,45 @@ interface GemstoneStore {
   getCertificateByGemstoneId: (gemstoneId: string) => Certificate | undefined;
 }
 
-export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
-  gemstones: [],
-  certificates: [],
-  selectedGemstone: null,
+export const useGemstoneStore = create<GemstoneStore>()(
+  persist(
+    (set, get) => ({
+      gemstones: [],
+      certificates: [],
+      selectedGemstone: null,
 
-  addGemstone: (gemstone) =>
-    set((state) => ({
-      gemstones: [...state.gemstones, gemstone],
-    })),
+      addGemstone: (gemstone) =>
+        set((state) => ({
+          gemstones: [...state.gemstones, gemstone],
+        })),
 
-  updateGemstone: (id, data) =>
-    set((state) => ({
-      gemstones: state.gemstones.map((gem) =>
-        gem.id === id ? { ...gem, ...data, updatedAt: new Date().toISOString() } : gem
-      ),
-    })),
+      updateGemstone: (id, data) =>
+        set((state) => ({
+          gemstones: state.gemstones.map((gem) =>
+            gem.id === id ? { ...gem, ...data, updatedAt: new Date().toISOString() } : gem
+          ),
+        })),
 
-  deleteGemstone: (id) =>
-    set((state) => ({
-      gemstones: state.gemstones.filter((gem) => gem.id !== id),
-    })),
+      deleteGemstone: (id) =>
+        set((state) => ({
+          gemstones: state.gemstones.filter((gem) => gem.id !== id),
+          certificates: state.certificates.filter((cert) => cert.gemstoneId !== id),
+        })),
 
-  selectGemstone: (gemstone) =>
-    set({ selectedGemstone: gemstone }),
+      selectGemstone: (gemstone) =>
+        set({ selectedGemstone: gemstone }),
 
-  addCertificate: (certificate) =>
-    set((state) => ({
-      certificates: [...state.certificates, certificate],
-    })),
+      addCertificate: (certificate) =>
+        set((state) => ({
+          certificates: [...state.certificates, certificate],
+        })),
 
-  getCertificateByGemstoneId: (gemstoneId) => {
-    return get().certificates.find((cert) => cert.gemstoneId === gemstoneId);
-  },
-}));
+      getCertificateByGemstoneId: (gemstoneId) => {
+        return get().certificates.find((cert) => cert.gemstoneId === gemstoneId);
+      },
+    }),
+    {
+      name: 'gemstone-storage',
+    }
+  )
+);

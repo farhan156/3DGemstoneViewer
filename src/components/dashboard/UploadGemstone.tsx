@@ -77,7 +77,16 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
     maxFiles: 1,
   });
 
-  const handleSubmit = () => {
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleSubmit = async () => {
     if (imageFiles.length < 36) {
       toast.error('Please upload at least 36 rotation frames');
       return;
@@ -93,93 +102,107 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
       return;
     }
 
-    const gemId = generateGemstoneId();
-    const certId = certificateFile ? generateCertificateId() : undefined;
+    const loadingToast = toast.loading('Processing images...');
 
-    // Create gemstone with customer data and optional fields
-    const newGem: any = {
-      id: gemId,
-      customerName: customerData.name,
-      customerContact: customerData.contact,
-      status: 'completed' as const,
-      frames: imageFiles.map((f) => URL.createObjectURL(f)),
-      shareableLink: `/view/${gemId}`,
-      visibility,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      const gemId = generateGemstoneId();
+      const certId = certificateFile ? generateCertificateId() : undefined;
 
-    // Add optional customer email
-    if (customerData.email.trim()) newGem.customerEmail = customerData.email;
+      // Convert all images to base64
+      const framePromises = imageFiles.map(file => fileToBase64(file));
+      const frames = await Promise.all(framePromises);
 
-    // Add optional gemstone fields only if they have values
-    if (gemData.name) newGem.name = gemData.name;
-    if (gemData.type) newGem.type = gemData.type;
-    if (gemData.weight) newGem.weight = parseFloat(gemData.weight);
-    if (gemData.cut) newGem.cut = gemData.cut;
-    if (gemData.origin) newGem.origin = gemData.origin;
-    if (gemData.clarity) newGem.clarity = gemData.clarity;
-    if (gemData.colorGrade) newGem.colorGrade = gemData.colorGrade;
-    if (certId) newGem.certificateId = certId;
-
-    addGemstone(newGem);
-
-    // Create certificate only if uploaded
-    if (certificateFile && certData.certificateNumber && certId) {
-      const fileExtension = certificateFile.name.split('.').pop()?.toLowerCase();
-      const newCert = {
-        id: certId,
-        gemstoneId: gemId,
-        issuer: certData.issuer,
-        certificateNumber: certData.certificateNumber,
-        fileUrl: URL.createObjectURL(certificateFile),
-        fileType: (certificateFile.type.includes('pdf') ? 'pdf' : fileExtension === 'png' ? 'png' : 'jpg') as 'pdf' | 'jpg' | 'png',
-        fileSize: certificateFile.size,
+      // Create gemstone with customer data and optional fields
+      const newGem: any = {
+        id: gemId,
+        customerName: customerData.name,
+        customerContact: customerData.contact,
+        status: 'completed' as const,
+        frames: frames,
+        shareableLink: `/view/${gemId}`,
+        visibility,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
-      addCertificate(newCert);
+
+      // Add optional customer email
+      if (customerData.email.trim()) newGem.customerEmail = customerData.email;
+
+      // Add optional gemstone fields only if they have values
+      if (gemData.name) newGem.name = gemData.name;
+      if (gemData.type) newGem.type = gemData.type;
+      if (gemData.weight) newGem.weight = parseFloat(gemData.weight);
+      if (gemData.cut) newGem.cut = gemData.cut;
+      if (gemData.origin) newGem.origin = gemData.origin;
+      if (gemData.clarity) newGem.clarity = gemData.clarity;
+      if (gemData.colorGrade) newGem.colorGrade = gemData.colorGrade;
+      if (certId) newGem.certificateId = certId;
+
+      addGemstone(newGem);
+
+      // Create certificate only if uploaded
+      if (certificateFile && certData.certificateNumber && certId) {
+        const certBase64 = await fileToBase64(certificateFile);
+        const fileExtension = certificateFile.name.split('.').pop()?.toLowerCase();
+        const newCert = {
+          id: certId,
+          gemstoneId: gemId,
+          issuer: certData.issuer,
+          certificateNumber: certData.certificateNumber,
+          fileUrl: certBase64,
+          fileType: (certificateFile.type.includes('pdf') ? 'pdf' : fileExtension === 'png' ? 'png' : 'jpg') as 'pdf' | 'jpg' | 'png',
+          fileSize: certificateFile.size,
+          createdAt: new Date().toISOString(),
+        };
+        addCertificate(newCert);
+      }
+      
+      toast.dismiss(loadingToast);
+      toast.success('Gemstone created successfully!');
+      
+      // Reset form
+      setImageFiles([]);
+      setCertificateFile(null);
+      setGemData({
+        name: '',
+        type: 'ruby',
+        weight: '',
+        cut: '',
+        origin: '',
+        clarity: '',
+        colorGrade: '',
+      });
+      setCustomerData({
+        name: '',
+        contact: '',
+        email: '',
+      });
+      setCertData({
+        issuer: 'GIA',
+        certificateNumber: '',
+      });
+      setVisibility({
+        showName: true,
+        showType: true,
+        showWeight: true,
+        showCut: true,
+        showClarity: true,
+        showColorGrade: true,
+        showOrigin: true,
+        showCertificate: true,
+        showCustomerName: true,
+        showCustomerContact: true,
+        showCustomerEmail: true,
+      });
+      
+      setTimeout(() => {
+        onComplete();
+      }, 1000);
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      toast.error('Failed to process images. Please try again.');
+      console.error('Upload error:', error);
     }
-    
-    toast.success('Gemstone created successfully!');
-    
-    // Reset form
-    setImageFiles([]);
-    setCertificateFile(null);
-    setGemData({
-      name: '',
-      type: 'ruby',
-      weight: '',
-      cut: '',
-      origin: '',
-      clarity: '',
-      colorGrade: '',
-    });
-    setCustomerData({
-      name: '',
-      contact: '',
-      email: '',
-    });
-    setCertData({
-      issuer: 'GIA',
-      certificateNumber: '',
-    });
-    setVisibility({
-      showName: true,
-      showType: true,
-      showWeight: true,
-      showCut: true,
-      showClarity: true,
-      showColorGrade: true,
-      showOrigin: true,
-      showCertificate: true,
-      showCustomerName: true,
-      showCustomerContact: true,
-      showCustomerEmail: true,
-    });
-    
-    setTimeout(() => {
-      onComplete();
-    }, 1000);
   };
 
   return (
