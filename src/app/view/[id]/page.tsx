@@ -3,21 +3,20 @@
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import PublicViewer from '@/components/viewer/PublicViewer';
-import { Gemstone, Certificate } from '@/types/gemstone';
+import { Gemstone } from '@/types/gemstone';
+import { useGemstoneStore } from '@/store/gemstoneStore';
 
 export default function ViewerPage() {
   const params = useParams();
   const [gemstone, setGemstone] = useState<Gemstone | null>(null);
   const [loading, setLoading] = useState(true);
+  const getGemstoneById = useGemstoneStore((state) => state.getGemstoneById);
 
   useEffect(() => {
     const fetchGemstone = async () => {
       try {
-        const response = await fetch(`/api/gemstones/${params.id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setGemstone(data);
-        }
+        const data = await getGemstoneById(params.id as string);
+        setGemstone(data);
       } catch (error) {
         console.error('Error fetching gemstone:', error);
       } finally {
@@ -26,7 +25,7 @@ export default function ViewerPage() {
     };
 
     fetchGemstone();
-  }, [params.id]);
+  }, [params.id, getGemstoneById]);
 
   if (loading) {
     return (

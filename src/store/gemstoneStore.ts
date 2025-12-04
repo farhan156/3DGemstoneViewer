@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { Gemstone, Certificate } from '@/types/gemstone';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 
 interface GemstoneStore {
   gemstones: Gemstone[];
@@ -13,6 +15,7 @@ interface GemstoneStore {
   updateGemstone: (id: string, data: Partial<Gemstone>) => Promise<void>;
   deleteGemstone: (id: string) => Promise<void>;
   selectGemstone: (gemstone: Gemstone | null) => void;
+  getGemstoneById: (id: string) => Promise<Gemstone | null>;
   
   addCertificate: (certificate: Certificate) => void;
   getCertificateByGemstoneId: (gemstoneId: string) => Certificate | undefined;
@@ -27,11 +30,12 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
   fetchGemstones: async () => {
     set({ isLoading: true });
     try {
-      const response = await fetch('/api/gemstones');
-      if (response.ok) {
-        const gemstones = await response.json();
-        set({ gemstones });
-      }
+      const querySnapshot = await getDocs(collection(db, 'gemstones'));
+      const gemstones: Gemstone[] = [];
+      querySnapshot.forEach((doc) => {
+        gemstones.push({ ...doc.data(), id: doc.id } as Gemstone);
+      });
+      set({ gemstones });
     } catch (error) {
       console.error('Error fetching gemstones:', error);
     } finally {
@@ -41,17 +45,10 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
 
   addGemstone: async (gemstone) => {
     try {
-      const response = await fetch('/api/gemstones', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(gemstone),
-      });
-      
-      if (response.ok) {
-        set((state) => ({
-          gemstones: [...state.gemstones, gemstone],
-        }));
-      }
+      await addDoc(collection(db, 'gemstones'), gemstone);
+      set((state) => ({
+        gemstones: [...state.gemstones, gemstone],
+      }));
     } catch (error) {
       console.error('Error adding gemstone:', error);
       throw error;
@@ -65,19 +62,12 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
     const updatedGemstone = { ...gemstone, ...data, updatedAt: new Date().toISOString() };
     
     try {
-      const response = await fetch(`/api/gemstones/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedGemstone),
-      });
-      
-      if (response.ok) {
-        set((state) => ({
-          gemstones: state.gemstones.map((gem) =>
-            gem.id === id ? updatedGemstone : gem
-          ),
-        }));
-      }
+      await updateDoc(doc(db, 'gemstones', id), updatedGemstone);
+      set((state) => ({
+        gemstones: state.gemstones.map((gem) =>
+          gem.id === id ? updatedGemstone : gem
+        ),
+      }));
     } catch (error) {
       console.error('Error updating gemstone:', error);
       throw error;
@@ -86,19 +76,27 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
 
   deleteGemstone: async (id) => {
     try {
-      const response = await fetch(`/api/gemstones?id=${id}`, {
-        method: 'DELETE',
-      });
-      
-      if (response.ok) {
-        set((state) => ({
-          gemstones: state.gemstones.filter((gem) => gem.id !== id),
-          certificates: state.certificates.filter((cert) => cert.gemstoneId !== id),
-        }));
-      }
+      await deleteDoc(doc(db, 'gemstones', id));
+      set((state) => ({
+        gemstones: state.gemstones.filter((gem) => gem.id !== id),
+        certificates: state.certificates.filter((cert) => cert.gemstoneId !== id),
+      }));
     } catch (error) {
       console.error('Error deleting gemstone:', error);
       throw error;
+    }
+  },
+
+  getGemstoneById: async (id: string) => {
+    try {
+      const docSnap = await getDoc(doc(db, 'gemstones', id));
+      if (docSnap.exists()) {
+        return { ...docSnap.data(), id: docSnap.id } as Gemstone;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching gemstone:', error);
+      return null;
     }
   },
 
