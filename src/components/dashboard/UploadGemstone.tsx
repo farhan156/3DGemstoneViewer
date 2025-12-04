@@ -54,14 +54,17 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
     formData.append('file', file);
     formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
     formData.append('folder', folder);
+    
+    // For PDFs, set resource_type to 'raw' or 'auto'
+    const isPdf = file.type === 'application/pdf';
+    const uploadUrl = isPdf 
+      ? `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/raw/upload`
+      : `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`;
 
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`,
-      {
-        method: 'POST',
-        body: formData,
-      }
-    );
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      body: formData,
+    });
 
     const data = await response.json();
     

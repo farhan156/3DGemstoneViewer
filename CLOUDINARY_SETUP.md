@@ -21,6 +21,8 @@
    - **Preset name**: `gemstone_uploads`
    - **Signing Mode**: **Unsigned**
    - **Folder**: Leave empty (we'll set dynamically)
+   - **Resource type**: Select **Auto** (to allow images and PDFs)
+   - **Access mode**: **Public** (important for viewing certificates)
 5. Click **Save**
 
 ## Step 4: Update Firebase Firestore Rules
