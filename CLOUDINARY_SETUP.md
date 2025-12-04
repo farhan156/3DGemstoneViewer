@@ -23,21 +23,40 @@
    - **Folder**: Leave empty (we'll set dynamically)
 5. Click **Save**
 
-## Step 4: Update Environment Variables
+## Step 4: Update Firebase Firestore Rules
+
+⚠️ **IMPORTANT:** Go to Firebase Console → Firestore Database → Rules
+
+Replace the rules with:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /gemstones/{gemstoneId} {
+      allow read, write: if true;
+    }
+  }
+}
+```
+
+Click **Publish** to save.
+
+## Step 5: Update Environment Variables
 
 Update your `.env.local`:
 
 ```env
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name_here
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=dkpmyaihf
 NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=gemstone_uploads
 ```
 
-## Step 5: Deploy to Vercel
+## Step 6: Deploy to Vercel
 
 1. Vercel → Settings → Environment Variables
 2. Add:
-   - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`
-   - `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`
+   - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=dkpmyaihf`
+   - `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=gemstone_uploads`
 3. Redeploy
 
 ## Free Tier Benefits
