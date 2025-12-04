@@ -1,17 +1,35 @@
+export interface VisibilitySettings {
+  showName: boolean;
+  showType: boolean;
+  showWeight: boolean;
+  showCut: boolean;
+  showClarity: boolean;
+  showColorGrade: boolean;
+  showOrigin: boolean;
+  showCertificate: boolean;
+  showCustomerName: boolean;
+  showCustomerContact: boolean;
+  showCustomerEmail: boolean;
+}
+
 export interface Gemstone {
   id: string;
-  name: string;
-  type: 'ruby' | 'sapphire' | 'emerald' | 'diamond' | 'other';
-  weight: number;
-  cut: string;
+  name?: string;
+  type?: 'ruby' | 'sapphire' | 'emerald' | 'diamond' | 'other';
+  weight?: number;
+  cut?: string;
   clarity?: string;
   colorGrade?: string;
   origin?: string;
+  customerName: string;
+  customerContact: string;
+  customerEmail?: string;
   status: 'uploaded' | 'processing' | 'completed';
   frames: string[];
   thumbnail?: string;
   certificateId?: string;
   shareableLink?: string;
+  visibility?: VisibilitySettings;
   createdAt: string;
   updatedAt: string;
 }

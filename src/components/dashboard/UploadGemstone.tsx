@@ -5,6 +5,7 @@ import { useDropzone } from 'react-dropzone';
 import toast from 'react-hot-toast';
 import { useGemstoneStore } from '@/store/gemstoneStore';
 import { generateGemstoneId, generateCertificateId } from '@/lib/utils';
+import type { VisibilitySettings } from '@/types/gemstone';
 
 interface UploadGemstoneProps {
   onComplete: () => void;
@@ -22,9 +23,27 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
     clarity: '',
     colorGrade: '',
   });
+  const [customerData, setCustomerData] = useState({
+    name: '',
+    contact: '',
+    email: '',
+  });
   const [certData, setCertData] = useState({
     issuer: 'GIA',
     certificateNumber: '',
+  });
+  const [visibility, setVisibility] = useState<VisibilitySettings>({
+    showName: true,
+    showType: true,
+    showWeight: true,
+    showCut: true,
+    showClarity: true,
+    showColorGrade: true,
+    showOrigin: true,
+    showCertificate: true,
+    showCustomerName: true,
+    showCustomerContact: true,
+    showCustomerEmail: true,
   });
   
   const addGemstone = useGemstoneStore((state) => state.addGemstone);
@@ -64,47 +83,62 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
       return;
     }
 
-    if (!gemData.name || !gemData.weight || !gemData.cut) {
-      toast.error('Please fill in all required gemstone information');
+    if (!customerData.name.trim()) {
+      toast.error('Customer name is required');
       return;
     }
 
-    if (!certificateFile || !certData.certificateNumber) {
-      toast.error('Please upload certificate and enter certificate number');
+    if (!customerData.contact.trim()) {
+      toast.error('Customer contact number is required');
       return;
     }
 
     const gemId = generateGemstoneId();
-    const certId = generateCertificateId();
+    const certId = certificateFile ? generateCertificateId() : undefined;
 
-    // Create gemstone
-    const newGem = {
+    // Create gemstone with customer data and optional fields
+    const newGem: any = {
       id: gemId,
-      ...gemData,
-      weight: parseFloat(gemData.weight),
+      customerName: customerData.name,
+      customerContact: customerData.contact,
       status: 'completed' as const,
       frames: imageFiles.map((f) => URL.createObjectURL(f)),
-      certificateId: certId,
       shareableLink: `/view/${gemId}`,
+      visibility,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    // Create certificate
-    const fileExtension = certificateFile.name.split('.').pop()?.toLowerCase();
-    const newCert = {
-      id: certId,
-      gemstoneId: gemId,
-      issuer: certData.issuer,
-      certificateNumber: certData.certificateNumber,
-      fileUrl: URL.createObjectURL(certificateFile),
-      fileType: (certificateFile.type.includes('pdf') ? 'pdf' : fileExtension === 'png' ? 'png' : 'jpg') as 'pdf' | 'jpg' | 'png',
-      fileSize: certificateFile.size,
-      createdAt: new Date().toISOString(),
-    };
+    // Add optional customer email
+    if (customerData.email.trim()) newGem.customerEmail = customerData.email;
+
+    // Add optional gemstone fields only if they have values
+    if (gemData.name) newGem.name = gemData.name;
+    if (gemData.type) newGem.type = gemData.type;
+    if (gemData.weight) newGem.weight = parseFloat(gemData.weight);
+    if (gemData.cut) newGem.cut = gemData.cut;
+    if (gemData.origin) newGem.origin = gemData.origin;
+    if (gemData.clarity) newGem.clarity = gemData.clarity;
+    if (gemData.colorGrade) newGem.colorGrade = gemData.colorGrade;
+    if (certId) newGem.certificateId = certId;
 
     addGemstone(newGem);
-    addCertificate(newCert);
+
+    // Create certificate only if uploaded
+    if (certificateFile && certData.certificateNumber && certId) {
+      const fileExtension = certificateFile.name.split('.').pop()?.toLowerCase();
+      const newCert = {
+        id: certId,
+        gemstoneId: gemId,
+        issuer: certData.issuer,
+        certificateNumber: certData.certificateNumber,
+        fileUrl: URL.createObjectURL(certificateFile),
+        fileType: (certificateFile.type.includes('pdf') ? 'pdf' : fileExtension === 'png' ? 'png' : 'jpg') as 'pdf' | 'jpg' | 'png',
+        fileSize: certificateFile.size,
+        createdAt: new Date().toISOString(),
+      };
+      addCertificate(newCert);
+    }
     
     toast.success('Gemstone created successfully!');
     
@@ -120,9 +154,27 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
       clarity: '',
       colorGrade: '',
     });
+    setCustomerData({
+      name: '',
+      contact: '',
+      email: '',
+    });
     setCertData({
       issuer: 'GIA',
       certificateNumber: '',
+    });
+    setVisibility({
+      showName: true,
+      showType: true,
+      showWeight: true,
+      showCut: true,
+      showClarity: true,
+      showColorGrade: true,
+      showOrigin: true,
+      showCertificate: true,
+      showCustomerName: true,
+      showCustomerContact: true,
+      showCustomerEmail: true,
     });
     
     setTimeout(() => {
@@ -138,12 +190,53 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
         <p className="text-gray-warm text-sm">Upload 360° rotation frames and certificate to create a complete gemstone entry</p>
       </header>
 
+      {/* Customer Information */}
+      <section className="bg-white rounded-xl border border-gray-light/50 p-6">
+        <h2 className="font-serif text-2xl text-charcoal mb-6">Customer Information</h2>
+        <div className="grid grid-cols-2 gap-5">
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-2">
+              Customer Name <span className="text-ruby">*</span>
+            </label>
+            <input
+              type="text"
+              value={customerData.name}
+              onChange={(e) => setCustomerData({ ...customerData, name: e.target.value })}
+              placeholder="Full name"
+              className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal placeholder-gray-warm rounded-lg focus:outline-none focus:border-gold transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-2">
+              Contact Number <span className="text-ruby">*</span>
+            </label>
+            <input
+              type="tel"
+              value={customerData.contact}
+              onChange={(e) => setCustomerData({ ...customerData, contact: e.target.value })}
+              placeholder="+1234567890"
+              className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal placeholder-gray-warm rounded-lg focus:outline-none focus:border-gold transition-all"
+            />
+          </div>
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-charcoal mb-2">Email Address</label>
+            <input
+              type="email"
+              value={customerData.email}
+              onChange={(e) => setCustomerData({ ...customerData, email: e.target.value })}
+              placeholder="customer@example.com"
+              className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal placeholder-gray-warm rounded-lg focus:outline-none focus:border-gold transition-all"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Gemstone Information */}
       <section className="bg-white rounded-xl border border-gray-light/50 p-6">
         <h2 className="font-serif text-2xl text-charcoal mb-6">Gemstone Information</h2>
         <div className="grid grid-cols-2 gap-5">
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-2">Gemstone Name *</label>
+            <label className="block text-sm font-medium text-charcoal mb-2">Gemstone Name</label>
             <input
               type="text"
               value={gemData.name}
@@ -153,7 +246,7 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-2">Type *</label>
+            <label className="block text-sm font-medium text-charcoal mb-2">Type</label>
             <select
               value={gemData.type}
               onChange={(e) => setGemData({ ...gemData, type: e.target.value as any })}
@@ -167,7 +260,7 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-2">Weight (carats) *</label>
+            <label className="block text-sm font-medium text-charcoal mb-2">Weight (carats)</label>
             <input
               type="number"
               step="0.01"
@@ -178,7 +271,7 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-2">Cut *</label>
+            <label className="block text-sm font-medium text-charcoal mb-2">Cut</label>
             <input
               type="text"
               value={gemData.cut}
@@ -301,7 +394,7 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
         <h2 className="font-serif text-2xl text-charcoal mb-6">Certificate</h2>
         <div className="grid grid-cols-2 gap-5 mb-6">
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-2">Issuer *</label>
+            <label className="block text-sm font-medium text-charcoal mb-2">Issuer (Optional)</label>
             <select
               value={certData.issuer}
               onChange={(e) => setCertData({ ...certData, issuer: e.target.value })}
@@ -315,7 +408,7 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-2">Certificate Number *</label>
+            <label className="block text-sm font-medium text-charcoal mb-2">Certificate Number (Optional)</label>
             <input
               type="text"
               value={certData.certificateNumber}
@@ -389,6 +482,113 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
         </div>
       </section>
 
+      {/* Visibility Settings */}
+      <section className="bg-white rounded-xl border border-gray-light/50 p-6">
+        <h2 className="font-serif text-2xl text-charcoal mb-4">Public Link Visibility</h2>
+        <p className="text-sm text-gray-warm mb-6">Choose which information appears on the shareable public link</p>
+        <div className="grid grid-cols-2 gap-4">
+          <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-cream/30 cursor-pointer transition-all">
+            <input
+              type="checkbox"
+              checked={visibility.showCustomerName}
+              onChange={(e) => setVisibility({ ...visibility, showCustomerName: e.target.checked })}
+              className="w-5 h-5 rounded border-gray-light text-gold focus:ring-gold focus:ring-offset-0"
+            />
+            <span className="text-sm font-medium text-charcoal">Show Customer Name</span>
+          </label>
+          <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-cream/30 cursor-pointer transition-all">
+            <input
+              type="checkbox"
+              checked={visibility.showCustomerContact}
+              onChange={(e) => setVisibility({ ...visibility, showCustomerContact: e.target.checked })}
+              className="w-5 h-5 rounded border-gray-light text-gold focus:ring-gold focus:ring-offset-0"
+            />
+            <span className="text-sm font-medium text-charcoal">Show Customer Contact</span>
+          </label>
+          <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-cream/30 cursor-pointer transition-all">
+            <input
+              type="checkbox"
+              checked={visibility.showCustomerEmail}
+              onChange={(e) => setVisibility({ ...visibility, showCustomerEmail: e.target.checked })}
+              className="w-5 h-5 rounded border-gray-light text-gold focus:ring-gold focus:ring-offset-0"
+            />
+            <span className="text-sm font-medium text-charcoal">Show Customer Email</span>
+          </label>
+          <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-cream/30 cursor-pointer transition-all">
+            <input
+              type="checkbox"
+              checked={visibility.showName}
+              onChange={(e) => setVisibility({ ...visibility, showName: e.target.checked })}
+              className="w-5 h-5 rounded border-gray-light text-gold focus:ring-gold focus:ring-offset-0"
+            />
+            <span className="text-sm font-medium text-charcoal">Show Gemstone Name</span>
+          </label>
+          <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-cream/30 cursor-pointer transition-all">
+            <input
+              type="checkbox"
+              checked={visibility.showType}
+              onChange={(e) => setVisibility({ ...visibility, showType: e.target.checked })}
+              className="w-5 h-5 rounded border-gray-light text-gold focus:ring-gold focus:ring-offset-0"
+            />
+            <span className="text-sm font-medium text-charcoal">Show Type</span>
+          </label>
+          <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-cream/30 cursor-pointer transition-all">
+            <input
+              type="checkbox"
+              checked={visibility.showWeight}
+              onChange={(e) => setVisibility({ ...visibility, showWeight: e.target.checked })}
+              className="w-5 h-5 rounded border-gray-light text-gold focus:ring-gold focus:ring-offset-0"
+            />
+            <span className="text-sm font-medium text-charcoal">Show Weight</span>
+          </label>
+          <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-cream/30 cursor-pointer transition-all">
+            <input
+              type="checkbox"
+              checked={visibility.showCut}
+              onChange={(e) => setVisibility({ ...visibility, showCut: e.target.checked })}
+              className="w-5 h-5 rounded border-gray-light text-gold focus:ring-gold focus:ring-offset-0"
+            />
+            <span className="text-sm font-medium text-charcoal">Show Cut</span>
+          </label>
+          <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-cream/30 cursor-pointer transition-all">
+            <input
+              type="checkbox"
+              checked={visibility.showClarity}
+              onChange={(e) => setVisibility({ ...visibility, showClarity: e.target.checked })}
+              className="w-5 h-5 rounded border-gray-light text-gold focus:ring-gold focus:ring-offset-0"
+            />
+            <span className="text-sm font-medium text-charcoal">Show Clarity</span>
+          </label>
+          <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-cream/30 cursor-pointer transition-all">
+            <input
+              type="checkbox"
+              checked={visibility.showColorGrade}
+              onChange={(e) => setVisibility({ ...visibility, showColorGrade: e.target.checked })}
+              className="w-5 h-5 rounded border-gray-light text-gold focus:ring-gold focus:ring-offset-0"
+            />
+            <span className="text-sm font-medium text-charcoal">Show Color Grade</span>
+          </label>
+          <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-cream/30 cursor-pointer transition-all">
+            <input
+              type="checkbox"
+              checked={visibility.showOrigin}
+              onChange={(e) => setVisibility({ ...visibility, showOrigin: e.target.checked })}
+              className="w-5 h-5 rounded border-gray-light text-gold focus:ring-gold focus:ring-offset-0"
+            />
+            <span className="text-sm font-medium text-charcoal">Show Origin</span>
+          </label>
+          <label className="flex items-center gap-3 p-3 rounded-lg hover:bg-cream/30 cursor-pointer transition-all">
+            <input
+              type="checkbox"
+              checked={visibility.showCertificate}
+              onChange={(e) => setVisibility({ ...visibility, showCertificate: e.target.checked })}
+              className="w-5 h-5 rounded border-gray-light text-gold focus:ring-gold focus:ring-offset-0"
+            />
+            <span className="text-sm font-medium text-charcoal">Show Certificate</span>
+          </label>
+        </div>
+      </section>
+
       {/* Actions */}
       <div className="flex justify-end gap-4 pb-8">
         <button
@@ -416,7 +616,7 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
         </button>
         <button
           onClick={handleSubmit}
-          disabled={imageFiles.length < 36 || !certificateFile || !gemData.name || !gemData.weight || !gemData.cut || !certData.certificateNumber}
+          disabled={imageFiles.length < 36}
           className="h-11 px-8 bg-gold text-white hover:bg-gold-dark rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-md disabled:shadow-none"
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2">
