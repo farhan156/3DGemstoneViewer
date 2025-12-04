@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Gemstone, Certificate } from '@/types/gemstone';
+import { Gemstone } from '@/types/gemstone';
 
 interface PublicViewerProps {
   gemstone: Gemstone;
-  certificate?: Certificate;
 }
 
-export default function PublicViewer({ gemstone, certificate }: PublicViewerProps) {
+export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
@@ -232,7 +231,7 @@ export default function PublicViewer({ gemstone, certificate }: PublicViewerProp
               )}
             </div>
 
-            {visibility.showCertificate && certificate && (
+            {visibility.showCertificate && gemstone.certificateUrl && (
               <div className="p-5 bg-cream/50 border border-gold/20 rounded-lg border-l-4 border-l-gold">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="w-12 h-12 bg-gold/10 border border-gold/30 rounded-lg flex items-center justify-center text-gold">
@@ -243,8 +242,8 @@ export default function PublicViewer({ gemstone, certificate }: PublicViewerProp
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="text-sm font-medium text-charcoal mb-0.5">{certificate.issuer} Certification</div>
-                    <div className="text-xs font-mono text-gray-warm">Certificate #{certificate.certificateNumber}</div>
+                    <div className="text-sm font-medium text-charcoal mb-0.5">Certification</div>
+                    <div className="text-xs font-mono text-gray-warm">Certificate Available</div>
                   </div>
                 </div>
                 <button 
@@ -272,7 +271,7 @@ export default function PublicViewer({ gemstone, certificate }: PublicViewerProp
       </footer>
 
       {/* Certificate Modal */}
-      {showCertificate && certificate && (
+      {showCertificate && gemstone.certificateUrl && (
         <div 
           className="fixed inset-0 z-50 bg-charcoal/90 backdrop-blur-sm flex items-center justify-center p-8"
           onClick={() => setShowCertificate(false)}
@@ -283,8 +282,8 @@ export default function PublicViewer({ gemstone, certificate }: PublicViewerProp
           >
             <div className="sticky top-0 bg-white border-b border-gray-light/50 p-4 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-serif font-semibold text-charcoal">{certificate.issuer} Certificate</h3>
-                <p className="text-sm text-gray-warm">Certificate #{certificate.certificateNumber}</p>
+                <h3 className="text-lg font-serif font-semibold text-charcoal">Certificate</h3>
+                <p className="text-sm text-gray-warm">Gemstone Certificate</p>
               </div>
               <button
                 onClick={() => setShowCertificate(false)}
@@ -296,15 +295,15 @@ export default function PublicViewer({ gemstone, certificate }: PublicViewerProp
               </button>
             </div>
             <div className="p-6">
-              {certificate.fileType === 'pdf' ? (
+              {gemstone.certificateType === 'pdf' ? (
                 <iframe
-                  src={certificate.fileUrl}
+                  src={gemstone.certificateUrl}
                   className="w-full h-[70vh] rounded-lg border border-gray-light"
                   title="Certificate Preview"
                 />
               ) : (
                 <img
-                  src={certificate.fileUrl}
+                  src={gemstone.certificateUrl}
                   alt="Certificate"
                   className="w-full h-auto rounded-lg border border-gray-light"
                 />

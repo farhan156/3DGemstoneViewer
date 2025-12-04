@@ -28,6 +28,8 @@ export interface Gemstone {
   frames: string[];
   thumbnail?: string;
   certificateId?: string;
+  certificateUrl?: string;
+  certificateType?: 'pdf' | 'jpg' | 'png';
   shareableLink?: string;
   visibility?: VisibilitySettings;
   createdAt: string;

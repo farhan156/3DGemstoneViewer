@@ -136,9 +136,17 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
       if (gemData.colorGrade) newGem.colorGrade = gemData.colorGrade;
       if (certId) newGem.certificateId = certId;
 
-      addGemstone(newGem);
+      // Add certificate file directly to gemstone if uploaded
+      if (certificateFile && certData.certificateNumber) {
+        const certBase64 = await fileToBase64(certificateFile);
+        const fileExtension = certificateFile.name.split('.').pop()?.toLowerCase();
+        newGem.certificateUrl = certBase64;
+        newGem.certificateType = (certificateFile.type.includes('pdf') ? 'pdf' : fileExtension === 'png' ? 'png' : 'jpg') as 'pdf' | 'jpg' | 'png';
+      }
 
-      // Create certificate only if uploaded
+      await addGemstone(newGem);
+
+      // Legacy: Create separate certificate record (keeping for backwards compatibility)
       if (certificateFile && certData.certificateNumber && certId) {
         const certBase64 = await fileToBase64(certificateFile);
         const fileExtension = certificateFile.name.split('.').pop()?.toLowerCase();

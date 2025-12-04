@@ -3,15 +3,21 @@
 import { useGemstoneStore } from '@/store/gemstoneStore';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 export default function Gallery() {
   const gemstones = useGemstoneStore((state) => state.gemstones);
   const deleteGemstone = useGemstoneStore((state) => state.deleteGemstone);
+  const fetchGemstones = useGemstoneStore((state) => state.fetchGemstones);
+  const isLoading = useGemstoneStore((state) => state.isLoading);
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    fetchGemstones();
+  }, [fetchGemstones]);
 
   const filteredGemstones = gemstones.filter((gem) => {
     if (statusFilter !== 'all' && gem.status !== statusFilter) return false;
