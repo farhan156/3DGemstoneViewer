@@ -48,6 +48,25 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
   const addGemstone = useGemstoneStore((state) => state.addGemstone);
   const addCertificate = useGemstoneStore((state) => state.addCertificate);
 
+  // Upload file to Cloudinary
+  const uploadToCloudinary = async (file: File, folder: string): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
+    formData.append('folder', folder);
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
+
+    const data = await response.json();
+    return data.secure_url;
+  };
+
   const onDropImages = useCallback((acceptedFiles: File[]) => {
     setImageFiles((prev) => [...prev, ...acceptedFiles]);
     toast.success(`${acceptedFiles.length} image(s) added`);
@@ -101,15 +120,19 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
       return;
     }
 
-    const loadingToast = toast.loading('Processing images...');
+    const loadingToast = toast.loading('Uploading to cloud storage...');
 
     try {
       const gemId = generateGemstoneId();
-      const certId = certificateFile ? generateCertificateId() : undefined;
 
-      // Convert all images to base64
-      const framePromises = imageFiles.map(file => fileToBase64(file));
-      const frames = await Promise.all(framePromises);
+      // Upload all images to Cloudinary
+      toast.loading('Uploading images...', { id: loadingToast });
+      const frameUrls: string[] = [];
+      for (let i = 0; i < imageFiles.length; i++) {
+        const url = await uploadToCloudinary(imageFiles[i], `gemstones/${gemId}/frames`);
+        frameUrls.push(url);
+        toast.loading(`Uploading images... ${i + 1}/${imageFiles.length}`, { id: loadingToast });
+      }
 
       // Create gemstone with customer data and optional fields
       const newGem: any = {
@@ -117,7 +140,7 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
         customerName: customerData.name,
         customerContact: customerData.contact,
         status: 'completed' as const,
-        frames: frames,
+        frames: frameUrls,
         shareableLink: `/view/${gemId}`,
         visibility,
         createdAt: new Date().toISOString(),
@@ -134,34 +157,18 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
       if (gemData.origin) newGem.origin = gemData.origin;
       if (gemData.clarity) newGem.clarity = gemData.clarity;
       if (gemData.colorGrade) newGem.colorGrade = gemData.colorGrade;
-      if (certId) newGem.certificateId = certId;
 
-      // Add certificate file directly to gemstone if uploaded
-      if (certificateFile && certData.certificateNumber) {
-        const certBase64 = await fileToBase64(certificateFile);
+      // Upload certificate if provided
+      if (certificateFile) {
+        toast.loading('Uploading certificate...', { id: loadingToast });
+        const certUrl = await uploadToCloudinary(certificateFile, `gemstones/${gemId}/certificate`);
         const fileExtension = certificateFile.name.split('.').pop()?.toLowerCase();
-        newGem.certificateUrl = certBase64;
+        newGem.certificateUrl = certUrl;
         newGem.certificateType = (certificateFile.type.includes('pdf') ? 'pdf' : fileExtension === 'png' ? 'png' : 'jpg') as 'pdf' | 'jpg' | 'png';
       }
 
+      toast.loading('Saving to database...', { id: loadingToast });
       await addGemstone(newGem);
-
-      // Legacy: Create separate certificate record (keeping for backwards compatibility)
-      if (certificateFile && certData.certificateNumber && certId) {
-        const certBase64 = await fileToBase64(certificateFile);
-        const fileExtension = certificateFile.name.split('.').pop()?.toLowerCase();
-        const newCert = {
-          id: certId,
-          gemstoneId: gemId,
-          issuer: certData.issuer,
-          certificateNumber: certData.certificateNumber,
-          fileUrl: certBase64,
-          fileType: (certificateFile.type.includes('pdf') ? 'pdf' : fileExtension === 'png' ? 'png' : 'jpg') as 'pdf' | 'jpg' | 'png',
-          fileSize: certificateFile.size,
-          createdAt: new Date().toISOString(),
-        };
-        addCertificate(newCert);
-      }
       
       toast.dismiss(loadingToast);
       toast.success('Gemstone created successfully!');
