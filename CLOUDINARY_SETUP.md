@@ -12,18 +12,27 @@
 2. Find your **Cloud Name** (e.g., "dge7abc123")
 3. Copy this value
 
-## Step 3: Create Upload Preset
+## Step 3: Create Upload Presets
 
+### For Images:
 1. Go to **Settings** (gear icon) → **Upload**
 2. Scroll to **Upload presets**
 3. Click **Add upload preset**
 4. Set:
    - **Preset name**: `gemstone_uploads`
    - **Signing Mode**: **Unsigned**
-   - **Folder**: Leave empty (we'll set dynamically)
-   - **Resource type**: Select **Auto** (to allow images and PDFs)
-   - **Access mode**: **Public** (important for viewing certificates)
+   - **Folder**: Leave empty
 5. Click **Save**
+
+### For PDFs (Certificates):
+1. Click **Add upload preset** again
+2. Set:
+   - **Preset name**: `gemstone_raw_uploads`
+   - **Signing Mode**: **Unsigned**
+   - **Folder**: Leave empty
+3. Click **Save**
+
+This creates two presets - one for images, one for PDFs.
 
 ## Step 4: Update Firebase Firestore Rules
 

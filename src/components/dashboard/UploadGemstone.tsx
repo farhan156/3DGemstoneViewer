@@ -52,11 +52,17 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
   const uploadToCloudinary = async (file: File, folder: string): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
+    
+    // For PDFs, use raw upload preset, for images use regular preset
+    const isPdf = file.type === 'application/pdf';
+    const uploadPreset = isPdf 
+      ? process.env.NEXT_PUBLIC_CLOUDINARY_RAW_UPLOAD_PRESET!
+      : process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
+    
+    formData.append('upload_preset', uploadPreset);
     formData.append('folder', folder);
     
-    // For PDFs, set resource_type to 'raw' or 'auto'
-    const isPdf = file.type === 'application/pdf';
+    // Use appropriate endpoint
     const uploadUrl = isPdf 
       ? `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/raw/upload`
       : `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`;
