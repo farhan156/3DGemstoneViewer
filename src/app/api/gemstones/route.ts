@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+import { redis } from '@/lib/redis';
 import { Gemstone } from '@/types/gemstone';
 
 // GET all gemstones
 export async function GET() {
   try {
-    const gemstoneIds = await kv.smembers('gemstone:ids') || [];
+    const gemstoneIds = await redis.smembers('gemstone:ids') || [];
     const gemstones: Gemstone[] = [];
     
     for (const id of gemstoneIds) {
-      const gemstone = await kv.get<Gemstone>(`gemstone:${id}`);
-      if (gemstone) {
-        gemstones.push(gemstone);
+      const gemstoneData = await redis.get(`gemstone:${id}`);
+      if (gemstoneData) {
+        gemstones.push(JSON.parse(gemstoneData));
       }
     }
     
@@ -28,10 +28,10 @@ export async function POST(request: NextRequest) {
     const gemstone: Gemstone = await request.json();
     
     // Store gemstone
-    await kv.set(`gemstone:${gemstone.id}`, gemstone);
+    await redis.set(`gemstone:${gemstone.id}`, JSON.stringify(gemstone));
     
     // Add ID to set of all gemstone IDs
-    await kv.sadd('gemstone:ids', gemstone.id);
+    await redis.sadd('gemstone:ids', gemstone.id);
     
     return NextResponse.json(gemstone, { status: 201 });
   } catch (error) {
@@ -51,10 +51,10 @@ export async function DELETE(request: NextRequest) {
     }
     
     // Remove gemstone
-    await kv.del(`gemstone:${id}`);
+    await redis.del(`gemstone:${id}`);
     
     // Remove ID from set
-    await kv.srem('gemstone:ids', id);
+    await redis.srem('gemstone:ids', id);
     
     return NextResponse.json({ success: true });
   } catch (error) {

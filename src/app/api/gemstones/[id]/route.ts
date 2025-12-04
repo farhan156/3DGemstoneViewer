@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+import { redis } from '@/lib/redis';
 import { Gemstone } from '@/types/gemstone';
 
 // GET single gemstone by ID
@@ -8,12 +8,13 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const gemstone = await kv.get<Gemstone>(`gemstone:${params.id}`);
+    const gemstoneData = await redis.get(`gemstone:${params.id}`);
     
-    if (!gemstone) {
+    if (!gemstoneData) {
       return NextResponse.json({ error: 'Gemstone not found' }, { status: 404 });
     }
     
+    const gemstone = JSON.parse(gemstoneData);
     return NextResponse.json(gemstone);
   } catch (error) {
     console.error('Error fetching gemstone:', error);
@@ -30,7 +31,7 @@ export async function PUT(
     const gemstone: Gemstone = await request.json();
     
     // Update gemstone
-    await kv.set(`gemstone:${params.id}`, gemstone);
+    await redis.set(`gemstone:${params.id}`, JSON.stringify(gemstone));
     
     return NextResponse.json(gemstone);
   } catch (error) {
