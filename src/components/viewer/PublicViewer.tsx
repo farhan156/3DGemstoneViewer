@@ -50,11 +50,10 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     if (!isDragging || !gemstone.frames) return;
     
     const delta = e.clientX - dragStartX.current;
-    const sensitivity = 3; // Optimized sensitivity
+    const sensitivity = 3;
     const frameDelta = Math.floor(delta / sensitivity);
     
     if (frameDelta !== 0) {
-      // Use requestAnimationFrame for smooth updates
       if (animationFrame.current) {
         cancelAnimationFrame(animationFrame.current);
       }
@@ -68,6 +67,36 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   };
 
   const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Touch handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    dragStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || !gemstone.frames) return;
+    
+    const delta = e.touches[0].clientX - dragStartX.current;
+    const sensitivity = 2; // More sensitive for mobile
+    const frameDelta = Math.floor(delta / sensitivity);
+    
+    if (frameDelta !== 0) {
+      if (animationFrame.current) {
+        cancelAnimationFrame(animationFrame.current);
+      }
+      
+      animationFrame.current = requestAnimationFrame(() => {
+        const newFrame = (currentFrame + frameDelta + gemstone.frames.length) % gemstone.frames.length;
+        setCurrentFrame(newFrame);
+        dragStartX.current = e.touches[0].clientX;
+      });
+    }
+  };
+
+  const handleTouchEnd = () => {
     setIsDragging(false);
   };
 
@@ -139,19 +168,22 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center px-8 pt-28 pb-16">
-        <div className="max-w-screen-2xl w-full grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 items-center">
+      <main className="flex-1 flex items-center justify-center px-4 md:px-8 pt-24 md:pt-28 pb-8 md:pb-16">
+        <div className="max-w-screen-2xl w-full grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-4 md:gap-8 items-start lg:items-center">
           {/* 360° Viewer */}
-          <div className="relative max-w-3xl mx-auto w-full aspect-square">
+          <div className="relative w-full max-w-3xl mx-auto aspect-square">
             <div 
               ref={viewerRef}
-              className={`w-full h-full bg-cream border border-gray-light/50 rounded-xl flex items-center justify-center shadow-lg overflow-hidden ${
+              className={`w-full h-full bg-cream border border-gray-light/50 rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg overflow-hidden touch-none ${
                 isDragging ? 'cursor-grabbing' : 'cursor-grab'
               }`}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
             >
               {gemstone.frames && gemstone.frames.length > 0 ? (
                 <>
@@ -200,41 +232,42 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
               )}
             </div>
 
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 p-3 bg-white/95 backdrop-blur-md border border-gray-light/50 rounded-lg shadow-lg">
+            <div className="absolute bottom-3 md:bottom-6 left-1/2 -translate-x-1/2 flex gap-2 md:gap-3 p-2 md:p-3 bg-white/95 backdrop-blur-md border border-gray-light/50 rounded-lg shadow-lg">
               <button 
                 onClick={rotateLeft}
-                className="w-10 h-10 border border-gray-light hover:bg-cream text-charcoal transition-all flex items-center justify-center rounded"
+                className="w-9 h-9 md:w-10 md:h-10 border border-gray-light active:bg-cream hover:bg-cream text-charcoal transition-all flex items-center justify-center rounded touch-manipulation"
                 title="Rotate left"
               >
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path d="M11 5L8 9L11 13" />
                   <circle cx="9" cy="9" r="7" />
                 </svg>
               </button>
-              <div className="flex items-center justify-center min-w-[80px] text-xs text-charcoal font-mono">
+              <div className="flex items-center justify-center min-w-[70px] md:min-w-[80px] text-xs text-charcoal font-mono">
                 <span className="font-semibold">{currentFrame + 1}</span>
                 <span className="text-gray-warm mx-1">/</span>
                 <span className="text-gray-warm">{gemstone.frames?.length || 0}</span>
               </div>
               <button 
                 onClick={rotateRight}
-                className="w-10 h-10 border border-gray-light hover:bg-cream text-charcoal transition-all flex items-center justify-center rounded"
+                className="w-9 h-9 md:w-10 md:h-10 border border-gray-light active:bg-cream hover:bg-cream text-charcoal transition-all flex items-center justify-center rounded touch-manipulation"
                 title="Rotate right"
               >
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path d="M7 5L10 9L7 13" />
                   <circle cx="9" cy="9" r="7" />
                 </svg>
               </button>
             </div>
 
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 text-xs text-gray-warm bg-white/90 px-5 py-2 backdrop-blur-sm border border-gray-light/50 rounded-full shadow-sm">
-              Drag to rotate · Click arrows to navigate
+            <div className="absolute top-3 md:top-6 left-1/2 -translate-x-1/2 text-xs text-gray-warm bg-white/90 px-3 md:px-5 py-1.5 md:py-2 backdrop-blur-sm border border-gray-light/50 rounded-full shadow-sm">
+              <span className="hidden md:inline">Drag to rotate · Click arrows to navigate</span>
+              <span className="md:hidden">Swipe to rotate</span>
             </div>
           </div>
 
           {/* Information Panel */}
-          <div className="bg-white border border-gray-light/50 rounded-xl p-8 space-y-6 shadow-lg">
+          <div className="bg-white border border-gray-light/50 rounded-xl md:rounded-2xl p-5 md:p-8 space-y-4 md:space-y-6 shadow-lg">
             {visibility.showName && gemstone.name && (
               <div className="pb-6 border-b border-gray-light/50">
                 <h1 className="font-serif text-4xl text-charcoal mb-2 tracking-tight leading-tight">{gemstone.name}</h1>
@@ -338,34 +371,45 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
       {/* Certificate Modal */}
       {showCertificate && gemstone.certificateUrl && (
         <div 
-          className="fixed inset-0 z-50 bg-charcoal/90 backdrop-blur-sm flex items-center justify-center p-8"
+          className="fixed inset-0 z-50 bg-charcoal/95 backdrop-blur-sm flex items-center justify-center p-2 md:p-8"
           onClick={() => setShowCertificate(false)}
         >
           <div 
-            className="bg-white rounded-xl max-w-4xl max-h-[90vh] overflow-auto shadow-2xl"
+            className="bg-white rounded-xl w-full max-w-4xl max-h-[95vh] md:max-h-[90vh] overflow-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 bg-white border-b border-gray-light/50 p-4 flex items-center justify-between">
+            <div className="sticky top-0 bg-white border-b border-gray-light/50 p-3 md:p-4 flex items-center justify-between z-10">
               <div>
-                <h3 className="text-lg font-serif font-semibold text-charcoal">Certificate</h3>
-                <p className="text-sm text-gray-warm">Gemstone Certificate</p>
+                <h3 className="text-base md:text-lg font-serif font-semibold text-charcoal">Certificate</h3>
+                <p className="text-xs md:text-sm text-gray-warm">Gemstone Certificate</p>
               </div>
               <button
                 onClick={() => setShowCertificate(false)}
-                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-cream transition-all text-gray-warm hover:text-charcoal"
+                className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-lg active:bg-cream hover:bg-cream transition-all text-gray-warm hover:text-charcoal touch-manipulation"
               >
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path d="M6 6L14 14M14 6L6 14" />
                 </svg>
               </button>
             </div>
-            <div className="p-6">
+            <div className="p-3 md:p-6">
               {gemstone.certificateType === 'pdf' ? (
-                <iframe
-                  src={gemstone.certificateUrl}
-                  className="w-full h-[70vh] rounded-lg border border-gray-light"
-                  title="Certificate Preview"
-                />
+                <>
+                  {/* PDF Viewer for mobile and desktop */}
+                  <iframe
+                    src={`${gemstone.certificateUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                    className="w-full h-[60vh] md:h-[70vh] rounded-lg border border-gray-light"
+                    title="Certificate Preview"
+                  />
+                  <a
+                    href={gemstone.certificateUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 block w-full py-2.5 bg-gold text-white text-center rounded-lg hover:bg-gold-dark transition-all text-sm font-medium"
+                  >
+                    Open PDF in New Tab
+                  </a>
+                </>
               ) : (
                 <img
                   src={gemstone.certificateUrl}
