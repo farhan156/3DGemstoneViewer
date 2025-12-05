@@ -59,7 +59,8 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
       }
       
       animationFrame.current = requestAnimationFrame(() => {
-        const newFrame = (currentFrame + frameDelta + gemstone.frames.length) % gemstone.frames.length;
+        // Invert the direction for natural rotation (drag right = rotate right)
+        const newFrame = (currentFrame - frameDelta + gemstone.frames.length) % gemstone.frames.length;
         setCurrentFrame(newFrame);
         dragStartX.current = e.clientX;
       });
@@ -89,7 +90,8 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
       }
       
       animationFrame.current = requestAnimationFrame(() => {
-        const newFrame = (currentFrame + frameDelta + gemstone.frames.length) % gemstone.frames.length;
+        // Invert the direction for natural rotation (swipe right = rotate right)
+        const newFrame = (currentFrame - frameDelta + gemstone.frames.length) % gemstone.frames.length;
         setCurrentFrame(newFrame);
         dragStartX.current = e.touches[0].clientX;
       });
