@@ -12,10 +12,29 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const dragStartX = useRef(0);
   const viewerRef = useRef<HTMLDivElement>(null);
   const imageCache = useRef<HTMLImageElement[]>([]);
   const animationFrame = useRef<number>();
+  const playInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Auto-rotation when playing
+  useEffect(() => {
+    if (isPlaying && gemstone.frames && gemstone.frames.length > 0) {
+      playInterval.current = setInterval(() => {
+        setCurrentFrame((prev) => (prev + 1) % gemstone.frames.length);
+      }, 80);
+    } else {
+      if (playInterval.current) clearInterval(playInterval.current);
+    }
+    return () => {
+      if (playInterval.current) clearInterval(playInterval.current);
+    };
+  }, [isPlaying, gemstone.frames]);
+
+  // Pause when user drags
+  const pauseOnDrag = () => { if (isPlaying) setIsPlaying(false); };
 
   // Debug: Log certificate data
   useEffect(() => {
@@ -44,6 +63,7 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     dragStartX.current = e.clientX;
+    pauseOnDrag();
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -75,6 +95,7 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsDragging(true);
     dragStartX.current = e.touches[0].clientX;
+    pauseOnDrag();
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -234,7 +255,18 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
               )}
             </div>
 
-            <div className="absolute bottom-3 md:bottom-6 left-1/2 -translate-x-1/2 flex gap-2 md:gap-3 p-2 md:p-3 bg-white/95 backdrop-blur-md border border-gray-light/50 rounded-lg shadow-lg">
+            {/* Logo overlay (Tier B) */}
+            {gemstone.tier === 'B' && gemstone.logoUrl && (
+              <div className="absolute bottom-16 md:bottom-20 right-3 md:right-5 z-10 pointer-events-none">
+                <img
+                  src={gemstone.logoUrl}
+                  alt="Brand logo"
+                  className="w-12 h-12 md:w-16 md:h-16 object-contain opacity-80"
+                />
+              </div>
+            )}
+
+            <div className="absolute bottom-3 md:bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5 md:gap-2 p-2 md:p-3 bg-white/95 backdrop-blur-md border border-gray-light/50 rounded-lg shadow-lg">
               <button 
                 onClick={rotateLeft}
                 className="w-9 h-9 md:w-10 md:h-10 border border-gray-light active:bg-cream hover:bg-cream text-charcoal transition-all flex items-center justify-center rounded touch-manipulation"
@@ -245,7 +277,26 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
                   <circle cx="9" cy="9" r="7" />
                 </svg>
               </button>
-              <div className="flex items-center justify-center min-w-[70px] md:min-w-[80px] text-xs text-charcoal font-mono">
+
+              {/* Play / Pause */}
+              <button
+                onClick={() => setIsPlaying((p) => !p)}
+                title={isPlaying ? 'Pause' : 'Play'}
+                className="w-9 h-9 md:w-10 md:h-10 border border-gray-light active:bg-gold/20 hover:bg-gold/10 text-charcoal transition-all flex items-center justify-center rounded touch-manipulation"
+              >
+                {isPlaying ? (
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                    <rect x="2" y="2" width="4" height="10" rx="1" />
+                    <rect x="8" y="2" width="4" height="10" rx="1" />
+                  </svg>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                    <path d="M3 2L12 7L3 12V2Z" />
+                  </svg>
+                )}
+              </button>
+
+              <div className="flex items-center justify-center min-w-[60px] md:min-w-[70px] text-xs text-charcoal font-mono">
                 <span className="font-semibold">{currentFrame + 1}</span>
                 <span className="text-gray-warm mx-1">/</span>
                 <span className="text-gray-warm">{gemstone.frames?.length || 0}</span>
@@ -270,13 +321,39 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
 
           {/* Information Panel */}
           <div className="bg-white border border-gray-light/50 rounded-xl md:rounded-2xl p-5 md:p-8 space-y-4 md:space-y-6 shadow-lg">
-            {visibility.showName && gemstone.name && (
+            {/* Title (Tier A & B) */}
+            {gemstone.title && (
+              <div className="pb-5 border-b border-gray-light/50">
+                <h1 className="font-serif text-3xl md:text-4xl text-charcoal mb-1 tracking-tight leading-tight">{gemstone.title}</h1>
+                {gemstone.tier && (
+                  <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full mt-2 ${
+                    gemstone.tier === 'B' ? 'bg-gold/15 text-gold' : 'bg-cream text-charcoal'
+                  }`}>
+                    Tier {gemstone.tier}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Legacy name fallback */}
+            {!gemstone.title && visibility.showName && gemstone.name && (
               <div className="pb-6 border-b border-gray-light/50">
                 <h1 className="font-serif text-4xl text-charcoal mb-2 tracking-tight leading-tight">{gemstone.name}</h1>
                 {visibility.showType && gemstone.type && (
                   <p className="text-gray-warm text-sm mb-1 capitalize">{gemstone.type}</p>
                 )}
                 <p className="text-gray-cool text-xs font-mono tracking-wide">ID: {gemstone.id}</p>
+              </div>
+            )}
+
+            {/* Tier B logo in panel */}
+            {gemstone.tier === 'B' && gemstone.logoUrl && (
+              <div className="flex items-center gap-3 pb-4 border-b border-gray-light/50">
+                <img
+                  src={gemstone.logoUrl}
+                  alt="Brand logo"
+                  className="w-10 h-10 object-contain"
+                />
               </div>
             )}
 

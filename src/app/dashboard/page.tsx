@@ -2,20 +2,20 @@
 
 import { useState } from 'react';
 import Sidebar from '@/components/dashboard/Sidebar';
-import UploadGemstone from '@/components/dashboard/UploadGemstone';
-import Gallery from '@/components/dashboard/Gallery';
+import AddNewOrder from '@/components/dashboard/AddNewOrder';
+import Orders from '@/components/dashboard/Orders';
 
 export default function DashboardPage() {
-  const [activePage, setActivePage] = useState('upload');
+  const [activePage, setActivePage] = useState('add-new');
 
   const renderPage = () => {
     switch (activePage) {
-      case 'upload':
-        return <UploadGemstone onComplete={() => setActivePage('gallery')} />;
-      case 'gallery':
-        return <Gallery />;
+      case 'add-new':
+        return <AddNewOrder onComplete={() => setActivePage('orders')} />;
+      case 'orders':
+        return <Orders />;
       default:
-        return <UploadGemstone onComplete={() => setActivePage('gallery')} />;
+        return <AddNewOrder onComplete={() => setActivePage('orders')} />;
     }
   };
 

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Gemstone, Certificate } from '@/types/gemstone';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, setDoc, getDocs, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 
 interface GemstoneStore {
   gemstones: Gemstone[];
@@ -45,7 +45,9 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
 
   addGemstone: async (gemstone) => {
     try {
-      await addDoc(collection(db, 'gemstones'), gemstone);
+      // Use setDoc with our custom id so the Firestore document ID matches
+      // the id field — this keeps /view/[id] links consistent.
+      await setDoc(doc(db, 'gemstones', gemstone.id), gemstone);
       set((state) => ({
         gemstones: [...state.gemstones, gemstone],
       }));

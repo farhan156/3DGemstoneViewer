@@ -14,7 +14,11 @@ export interface VisibilitySettings {
 
 export interface Gemstone {
   id: string;
+  orderNumber?: string;
   name?: string;
+  title?: string;
+  tier?: 'A' | 'B';
+  logoUrl?: string;
   type?: 'ruby' | 'sapphire' | 'emerald' | 'diamond' | 'other';
   weight?: number;
   cut?: string;

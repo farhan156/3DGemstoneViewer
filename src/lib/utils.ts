@@ -29,6 +29,14 @@ export function generateCertificateId(): string {
   return `cert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+export function generateOrderNumber(existingCount?: number): string {
+  if (existingCount !== undefined) {
+    return `ORD-${String(existingCount + 1).padStart(5, '0')}`;
+  }
+  const ts = Date.now();
+  return `ORD-${String(ts).slice(-6)}`;
+}
+
 export function getGemstoneColor(type: string): string {
   const colors: Record<string, string> = {
     ruby: '#9b1c31',

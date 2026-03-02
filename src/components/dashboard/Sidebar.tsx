@@ -10,22 +10,22 @@ interface SidebarProps {
 export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
   const navItems = [
     {
-      id: 'upload',
-      label: 'Upload Gemstone',
+      id: 'add-new',
+      label: 'Add New',
       icon: (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M10 14V6M10 6L7 9M10 6L13 9"/>
-          <rect x="4" y="4" width="12" height="12" rx="1"/>
+          <circle cx="10" cy="10" r="7" />
+          <path d="M10 7V13M7 10H13" />
         </svg>
       ),
     },
     {
-      id: 'gallery',
-      label: 'All Gemstones',
+      id: 'orders',
+      label: 'Orders',
       icon: (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect x="3" y="3" width="14" height="14" rx="2"/>
-          <path d="M3 13L7 9L10 12L17 5"/>
+          <rect x="3" y="3" width="14" height="14" rx="2" />
+          <path d="M6 7H14M6 10H14M6 13H10" />
         </svg>
       ),
     },
