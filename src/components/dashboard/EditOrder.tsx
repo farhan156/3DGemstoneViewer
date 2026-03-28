@@ -25,6 +25,7 @@ export default function EditOrder({ order, onClose }: EditOrderProps) {
   const updateGemstone = useGemstoneStore((state) => state.updateGemstone);
   const gemstones = useGemstoneStore((state) => state.gemstones);
 
+  const [orderNumber, setOrderNumber] = useState(order.orderNumber || '');
   const [customerName, setCustomerName] = useState(order.customerName);
   const [phoneNumber, setPhoneNumber] = useState(order.customerContact);
   const [title, setTitle] = useState(order.title || '');
@@ -125,6 +126,7 @@ export default function EditOrder({ order, onClose }: EditOrderProps) {
     const uploadedFrames = frameFiles.length > 0 ? await uploadNewFrames(toastId) : [];
 
     const updates: Partial<Gemstone> = {
+      orderNumber: orderNumber.trim(),
       customerName: customerName.trim(),
       customerContact: normalizePhoneNumber(phoneNumber),
       tier,
@@ -218,9 +220,9 @@ export default function EditOrder({ order, onClose }: EditOrderProps) {
 
       updates.status = 'completed';
       updates.shareableLink = `/view/${order.id}`;
-      updates.orderNumber =
-        order.orderNumber ||
-        generateUniqueOrderNumber(gemstones.map((item) => item.orderNumber || ''));
+      if (!updates.orderNumber) {
+        updates.orderNumber = generateUniqueOrderNumber(gemstones.map((item) => item.orderNumber || ''));
+      }
 
       await updateGemstone(order.id, updates);
 
@@ -255,6 +257,17 @@ export default function EditOrder({ order, onClose }: EditOrderProps) {
         </div>
 
         <div className="p-6 space-y-5 max-h-[72vh] overflow-y-auto">
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-2">Order Number</label>
+            <input
+              type="text"
+              value={orderNumber}
+              onChange={(e) => setOrderNumber(e.target.value)}
+              className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal rounded-lg focus:outline-none focus:border-gold font-mono transition-all"
+              placeholder="e.g. ORD-00001"
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-charcoal mb-2">Customer Name <span className="text-ruby">*</span></label>
             <input

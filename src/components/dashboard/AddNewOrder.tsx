@@ -25,7 +25,7 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
   const gemstones = useGemstoneStore((state) => state.gemstones);
   const addGemstone = useGemstoneStore((state) => state.addGemstone);
 
-  const [orderNumber] = useState(() =>
+  const [orderNumber, setOrderNumber] = useState(() =>
     generateUniqueOrderNumber(gemstones.map((item) => item.orderNumber || ''))
   );
   const [customerName, setCustomerName] = useState('');
@@ -355,10 +355,16 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
       </header>
 
       <section className="bg-white rounded-xl border border-gray-light/50 p-6">
-        <label className="block text-xs font-medium text-gray-warm uppercase tracking-wider mb-1">Order Number</label>
-        <div className="flex items-center gap-3 h-11 px-4 bg-pearl border border-gray-light rounded-lg">
-          <span className="font-mono font-semibold text-charcoal tracking-widest">{orderNumber}</span>
-          <span className="ml-auto text-xs text-gray-warm bg-cream px-2 py-0.5 rounded">Auto-generated</span>
+        <label className="block text-xs font-medium text-gray-warm uppercase tracking-wider mb-1">Order Number (Editable)</label>
+        <div className="flex items-center gap-3 h-11 px-4 bg-pearl border border-gray-light rounded-lg focus-within:border-gold/50 focus-within:ring-1 focus-within:ring-gold/30 transition-all">
+          <input
+            type="text"
+            value={orderNumber}
+            onChange={(e) => setOrderNumber(e.target.value)}
+            className="w-full bg-transparent border-none p-0 font-mono font-semibold text-charcoal tracking-widest focus:ring-0"
+            placeholder="e.g. ORD-00001"
+          />
+          <span className="ml-auto text-xs text-gray-warm bg-cream px-2 py-0.5 rounded whitespace-nowrap">Auto-incremented</span>
         </div>
       </section>
 

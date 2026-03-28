@@ -38,16 +38,22 @@ export function generateOrderNumber(existingCount?: number): string {
 }
 
 export function generateUniqueOrderNumber(existingOrderNumbers: string[]): string {
-  const existing = new Set(existingOrderNumbers.filter(Boolean));
+  let max = 0;
+  
+  for (const numStr of existingOrderNumbers) {
+    if (!numStr) continue;
+    // Extract the numeric part from something like "ORD-00001" or just "1"
+    const match = numStr.match(/\d+/);
+    if (match) {
+      const num = parseInt(match[0], 10);
+      if (!isNaN(num) && num > max) {
+        max = num;
+      }
+    }
+  }
 
-  let next = '';
-  do {
-    const ts = Date.now().toString().slice(-8);
-    const suffix = Math.floor(100 + Math.random() * 900);
-    next = `ORD-${ts}-${suffix}`;
-  } while (existing.has(next));
-
-  return next;
+  const nextCount = max + 1;
+  return `ORD-${String(nextCount).padStart(5, '0')}`;
 }
 
 export function getGemstoneColor(type: string): string {

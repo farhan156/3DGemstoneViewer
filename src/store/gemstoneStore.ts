@@ -45,11 +45,19 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
 
   addGemstone: async (gemstone) => {
     try {
+      // Clean undefined values because Firestore does not support it
+      const cleanGemstone = { ...gemstone };
+      Object.keys(cleanGemstone).forEach((key) => {
+        if (cleanGemstone[key as keyof Gemstone] === undefined) {
+          delete cleanGemstone[key as keyof Gemstone];
+        }
+      });
+
       // Use setDoc with our custom id so the Firestore document ID matches
       // the id field — this keeps /view/[id] links consistent.
-      await setDoc(doc(db, 'gemstones', gemstone.id), gemstone);
+      await setDoc(doc(db, 'gemstones', gemstone.id), cleanGemstone);
       set((state) => ({
-        gemstones: [...state.gemstones, gemstone],
+        gemstones: [...state.gemstones, cleanGemstone],
       }));
     } catch (error) {
       console.error('Error adding gemstone:', error);
@@ -58,16 +66,28 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
   },
 
   updateGemstone: async (id, data) => {
-    const gemstone = get().gemstones.find(g => g.id === id);
+    const gemstone = get().gemstones.find((g) => g.id === id);
     if (!gemstone) return;
-    
-    const updatedGemstone = { ...gemstone, ...data, updatedAt: new Date().toISOString() };
-    
+
+    const updatedGemstone = {
+      ...gemstone,
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Clean undefined values because Firestore does not support it
+    const cleanUpdatedGemstone = { ...updatedGemstone };
+    Object.keys(cleanUpdatedGemstone).forEach((key) => {
+      if (cleanUpdatedGemstone[key as keyof Gemstone] === undefined) {
+        delete cleanUpdatedGemstone[key as keyof Gemstone];
+      }
+    });
+
     try {
-      await updateDoc(doc(db, 'gemstones', id), updatedGemstone);
+      await updateDoc(doc(db, 'gemstones', id), cleanUpdatedGemstone as any);
       set((state) => ({
         gemstones: state.gemstones.map((gem) =>
-          gem.id === id ? updatedGemstone : gem
+          gem.id === id ? cleanUpdatedGemstone : gem
         ),
       }));
     } catch (error) {
