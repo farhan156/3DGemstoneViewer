@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Sidebar from '@/components/dashboard/Sidebar';
-import AddNewOrder from '@/components/dashboard/AddNewOrder';
-import Orders from '@/components/dashboard/Orders';
+import { useState } from "react";
+import Sidebar from "@/components/dashboard/Sidebar";
+import AddNewOrder from "@/components/dashboard/AddNewOrder";
+import Orders from "@/components/dashboard/Orders";
 
 export default function DashboardPage() {
-  const [activePage, setActivePage] = useState('add-new');
+  const [activePage, setActivePage] = useState("add-new");
 
   const renderPage = () => {
     switch (activePage) {
-      case 'add-new':
-        return <AddNewOrder onComplete={() => setActivePage('orders')} />;
-      case 'orders':
+      case "add-new":
+        return <AddNewOrder onComplete={() => setActivePage("orders")} />;
+      case "orders":
         return <Orders />;
       default:
-        return <AddNewOrder onComplete={() => setActivePage('orders')} />;
+        return <AddNewOrder onComplete={() => setActivePage("orders")} />;
     }
   };
 

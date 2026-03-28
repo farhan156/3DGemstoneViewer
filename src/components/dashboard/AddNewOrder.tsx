@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useEffect } from 'react';
-import { useDropzone } from 'react-dropzone';
-import toast from 'react-hot-toast';
-import { useGemstoneStore } from '@/store/gemstoneStore';
-import { generateGemstoneId, generateOrderNumber } from '@/lib/utils';
+import { useState, useCallback, useEffect } from "react";
+import { useDropzone } from "react-dropzone";
+import toast from "react-hot-toast";
+import { useGemstoneStore } from "@/store/gemstoneStore";
+import { generateGemstoneId, generateOrderNumber } from "@/lib/utils";
 
 interface AddNewOrderProps {
   onComplete: () => void;
@@ -18,31 +18,35 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
   const addGemstone = useGemstoneStore((state) => state.addGemstone);
 
   const [orderNumber] = useState(() => generateOrderNumber(gemstones.length));
-  const [customerName, setCustomerName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [title, setTitle] = useState('');
-  const [tier, setTier] = useState<'A' | 'B'>('A');
+  const [customerName, setCustomerName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [title, setTitle] = useState("");
+  const [tier, setTier] = useState<"A" | "B">("A");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdLink, setCreatedLink] = useState<string | null>(null);
 
   // Upload to Cloudinary
-  const uploadToCloudinary = async (file: File, folder: string): Promise<string> => {
+  const uploadToCloudinary = async (
+    file: File,
+    folder: string,
+  ): Promise<string> => {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append("file", file);
     formData.append(
-      'upload_preset',
-      process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!
+      "upload_preset",
+      process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!,
     );
-    formData.append('folder', folder);
+    formData.append("folder", folder);
 
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-      { method: 'POST', body: formData }
+      { method: "POST", body: formData },
     );
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error?.message || 'Upload failed');
+    if (!response.ok) throw new Error(data.error?.message || "Upload failed");
     return data.secure_url;
   };
 
@@ -58,14 +62,14 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
     isDragActive: isFrameDragActive,
   } = useDropzone({
     onDrop: onDropFrames,
-    accept: { 'image/*': ['.png', '.jpg', '.jpeg'] },
+    accept: { "image/*": [".png", ".jpg", ".jpeg"] },
   });
 
   /* ── Logo dropzone (Tier B) ── */
   const onDropLogo = useCallback((accepted: File[]) => {
     if (accepted.length > 0) {
       setLogoFile(accepted[0]);
-      toast.success('Logo uploaded');
+      toast.success("Logo uploaded");
     }
   }, []);
 
@@ -75,74 +79,91 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
     isDragActive: isLogoDragActive,
   } = useDropzone({
     onDrop: onDropLogo,
-    accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.svg', '.webp'] },
+    accept: { "image/*": [".png", ".jpg", ".jpeg", ".svg", ".webp"] },
+    maxFiles: 1,
+  });
+
+  /* ── Certificate dropzone (Tier B) ── */
+  const onDropCertificate = useCallback((accepted: File[]) => {
+    if (accepted.length > 0) {
+      setCertificateFile(accepted[0]);
+      toast.success("Certificate uploaded");
+    }
+  }, []);
+
+  const {
+    getRootProps: getCertificateRootProps,
+    getInputProps: getCertificateInputProps,
+    isDragActive: isCertificateDragActive,
+  } = useDropzone({
+    onDrop: onDropCertificate,
+    accept: {
+      "application/pdf": [".pdf"],
+      "image/*": [".png", ".jpg", ".jpeg"],
+    },
     maxFiles: 1,
   });
 
   /* ── Frame validation state ── */
-  const frameStatus: 'empty' | 'low' | 'ok' | 'ideal' =
+  const frameStatus: "empty" | "low" | "ok" | "ideal" =
     imageFiles.length === 0
-      ? 'empty'
+      ? "empty"
       : imageFiles.length < MIN_FRAMES
-      ? 'low'
-      : imageFiles.length < IDEAL_FRAMES
-      ? 'ok'
-      : 'ideal';
+        ? "low"
+        : imageFiles.length < IDEAL_FRAMES
+          ? "ok"
+          : "ideal";
 
   const frameStatusColor = {
-    empty: 'text-gray-warm',
-    low: 'text-ruby',
-    ok: 'text-topaz',
-    ideal: 'text-emerald',
+    empty: "text-gray-warm",
+    low: "text-ruby",
+    ok: "text-topaz",
+    ideal: "text-emerald",
   }[frameStatus];
 
   const frameStatusLabel = {
-    empty: 'No frames',
+    empty: "No frames",
     low: `Too few — need at least ${MIN_FRAMES} (${MIN_FRAMES - imageFiles.length} more)`,
     ok: `Acceptable — ${IDEAL_FRAMES - imageFiles.length} more for ideal quality`,
-    ideal: '✓ Ready',
+    ideal: "✓ Ready",
   }[frameStatus];
 
   /* ── Copy link helper ── */
   const copyLink = (link: string) => {
     navigator.clipboard.writeText(window.location.origin + link);
-    toast.success('Link copied to clipboard!');
+    toast.success("Link copied to clipboard!");
   };
 
   /* ── WhatsApp send ── */
   const sendWhatsApp = (phone: string, link: string) => {
-    const cleaned = phone.replace(/\D/g, '');
+    const cleaned = phone.replace(/\D/g, "");
     const message = encodeURIComponent(
-      `Hello! Your 360° jewellery view is ready. View it here: ${window.location.origin}${link}`
+      `Hello! Your 360° jewellery view is ready. View it here: ${window.location.origin}${link}`,
     );
-    window.open(`https://wa.me/${cleaned}?text=${message}`, '_blank');
+    window.open(`https://wa.me/${cleaned}?text=${message}`, "_blank");
   };
 
   /* ── Submit ── */
   const handleSubmit = async () => {
     if (!customerName.trim()) {
-      toast.error('Customer name is required');
+      toast.error("Customer name is required");
       return;
     }
     if (!phoneNumber.trim()) {
-      toast.error('Phone number is required');
+      toast.error("Phone number is required");
       return;
     }
     if (!title.trim()) {
-      toast.error('Title is required');
+      toast.error("Title is required");
       return;
     }
     if (imageFiles.length < MIN_FRAMES) {
       toast.error(`Please upload at least ${MIN_FRAMES} rotation frames`);
       return;
     }
-    if (tier === 'B' && !logoFile) {
-      toast.error('Please upload a logo for Tier B');
-      return;
-    }
 
     setIsSubmitting(true);
-    const loadingToast = toast.loading('Uploading frames…');
+    const loadingToast = toast.loading("Uploading frames…");
 
     try {
       const gemId = generateGemstoneId();
@@ -152,7 +173,7 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
       for (let i = 0; i < imageFiles.length; i++) {
         const url = await uploadToCloudinary(
           imageFiles[i],
-          `orders/${gemId}/frames`
+          `orders/${gemId}/frames`,
         );
         frameUrls.push(url);
         toast.loading(`Uploading frames… ${i + 1}/${imageFiles.length}`, {
@@ -162,12 +183,28 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
 
       // Upload logo (Tier B)
       let logoUrl: string | undefined;
-      if (tier === 'B' && logoFile) {
-        toast.loading('Uploading logo…', { id: loadingToast });
+      if (tier === "B" && logoFile) {
+        toast.loading("Uploading logo…", { id: loadingToast });
         logoUrl = await uploadToCloudinary(logoFile, `orders/${gemId}/logo`);
       }
 
-      toast.loading('Saving order…', { id: loadingToast });
+      // Upload certificate (Tier B)
+      let certificateUrl: string | undefined;
+      let certificateType: "pdf" | "jpg" | "png" | undefined;
+      if (tier === "B" && certificateFile) {
+        toast.loading("Uploading certificate…", { id: loadingToast });
+        certificateUrl = await uploadToCloudinary(
+          certificateFile,
+          `orders/${gemId}/certificate`,
+        );
+        const fileExt = certificateFile.name.split(".").pop()?.toLowerCase();
+        if (fileExt === "pdf") certificateType = "pdf";
+        else if (fileExt === "jpg" || fileExt === "jpeg")
+          certificateType = "jpg";
+        else if (fileExt === "png") certificateType = "png";
+      }
+
+      toast.loading("Saving order…", { id: loadingToast });
 
       const shareableLink = `/view/${gemId}`;
 
@@ -179,7 +216,7 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
         tier,
         frames: frameUrls,
         shareableLink,
-        status: 'completed' as const,
+        status: "completed" as const,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -187,15 +224,17 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
       // Only add optional fields if they have a value (Firestore rejects undefined)
       if (title.trim()) newOrder.title = title.trim();
       if (logoUrl) newOrder.logoUrl = logoUrl;
+      if (certificateUrl) newOrder.certificateUrl = certificateUrl;
+      if (certificateType) newOrder.certificateType = certificateType;
 
       await addGemstone(newOrder);
 
       toast.dismiss(loadingToast);
-      toast.success('Order created successfully!');
+      toast.success("Order created successfully!");
       setCreatedLink(shareableLink);
     } catch (err) {
       toast.dismiss(loadingToast);
-      toast.error('Upload failed. Please try again.');
+      toast.error("Upload failed. Please try again.");
       console.error(err);
     } finally {
       setIsSubmitting(false);
@@ -205,12 +244,13 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
   /* ── Reset form ── */
   const handleReset = () => {
     setCreatedLink(null);
-    setCustomerName('');
-    setPhoneNumber('');
-    setTitle('');
-    setTier('A');
+    setCustomerName("");
+    setPhoneNumber("");
+    setTitle("");
+    setTier("A");
     setImageFiles([]);
     setLogoFile(null);
+    setCertificateFile(null);
     onComplete();
   };
 
@@ -219,19 +259,35 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
     return (
       <div className="max-w-2xl mx-auto text-center space-y-8 py-16">
         <div className="w-20 h-20 mx-auto rounded-full bg-emerald/10 border border-emerald/30 flex items-center justify-center">
-          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-emerald">
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 36 36"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            className="text-emerald"
+          >
             <circle cx="18" cy="18" r="15" />
             <path d="M11 18L16 23L25 13" />
           </svg>
         </div>
         <div>
-          <h2 className="font-serif text-3xl text-charcoal mb-2">Order Created!</h2>
-          <p className="text-gray-warm">Order <span className="font-semibold text-charcoal">{orderNumber}</span> is live.</p>
+          <h2 className="font-serif text-3xl text-charcoal mb-2">
+            Order Created!
+          </h2>
+          <p className="text-gray-warm">
+            Order{" "}
+            <span className="font-semibold text-charcoal">{orderNumber}</span>{" "}
+            is live.
+          </p>
         </div>
 
         {/* Link box */}
         <div className="bg-white border border-gray-light rounded-xl p-5 text-left space-y-3">
-          <p className="text-xs font-medium text-gray-warm uppercase tracking-wider">Shareable link</p>
+          <p className="text-xs font-medium text-gray-warm uppercase tracking-wider">
+            Shareable link
+          </p>
           <div className="flex items-center gap-3 bg-pearl rounded-lg px-4 py-3">
             <span className="flex-1 text-sm text-charcoal font-mono break-all">
               {window.location.origin + createdLink}
@@ -251,7 +307,7 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
             className="h-11 px-6 flex items-center gap-2 bg-[#25D366] text-white font-medium text-sm rounded-xl hover:bg-[#1ebe5a] transition-all shadow-md"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
             </svg>
             Send via WhatsApp
           </button>
@@ -271,8 +327,12 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
     <div className="max-w-3xl space-y-8">
       {/* Header */}
       <header className="pb-6 border-b border-gray-light/50">
-        <h1 className="font-serif text-4xl text-charcoal mb-1 tracking-tight">Add New Order</h1>
-        <p className="text-gray-warm text-sm">Fill in the customer details and upload the 360° frames</p>
+        <h1 className="font-serif text-4xl text-charcoal mb-1 tracking-tight">
+          Add New Order
+        </h1>
+        <p className="text-gray-warm text-sm">
+          Fill in the customer details and upload the 360° frames
+        </p>
       </header>
 
       {/* Order Number */}
@@ -283,12 +343,24 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
               Order Number
             </label>
             <div className="flex items-center gap-3 h-11 px-4 bg-pearl border border-gray-light rounded-lg">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gold flex-shrink-0">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="text-gold flex-shrink-0"
+              >
                 <rect x="2" y="3" width="12" height="10" rx="1" />
                 <path d="M5 7H11M5 10H9" />
               </svg>
-              <span className="font-mono font-semibold text-charcoal tracking-widest">{orderNumber}</span>
-              <span className="ml-auto text-xs text-gray-warm bg-cream px-2 py-0.5 rounded">Auto-generated</span>
+              <span className="font-mono font-semibold text-charcoal tracking-widest">
+                {orderNumber}
+              </span>
+              <span className="ml-auto text-xs text-gray-warm bg-cream px-2 py-0.5 rounded">
+                Auto-generated
+              </span>
             </div>
           </div>
         </div>
@@ -296,7 +368,9 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
 
       {/* Customer Info */}
       <section className="bg-white rounded-xl border border-gray-light/50 p-6">
-        <h2 className="font-serif text-xl text-charcoal mb-5">Customer Information</h2>
+        <h2 className="font-serif text-xl text-charcoal mb-5">
+          Customer Information
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <label className="block text-sm font-medium text-charcoal mb-2">
@@ -344,43 +418,67 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
           {/* Tier A */}
           <label
             className={`relative flex flex-col gap-2 p-5 rounded-xl border-2 cursor-pointer transition-all ${
-              tier === 'A'
-                ? 'border-gold bg-gold/5'
-                : 'border-gray-light hover:border-gold/40 hover:bg-cream/30'
+              tier === "A"
+                ? "border-gold bg-gold/5"
+                : "border-gray-light hover:border-gold/40 hover:bg-cream/30"
             }`}
           >
             <input
               type="radio"
               name="tier"
               value="A"
-              checked={tier === 'A'}
-              onChange={() => setTier('A')}
+              checked={tier === "A"}
+              onChange={() => setTier("A")}
               className="sr-only"
             />
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div
                   className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                    tier === 'A' ? 'border-gold bg-gold' : 'border-gray-light'
+                    tier === "A" ? "border-gold bg-gold" : "border-gray-light"
                   }`}
                 >
-                  {tier === 'A' && (
+                  {tier === "A" && (
                     <div className="w-2 h-2 rounded-full bg-white" />
                   )}
                 </div>
-                <span className="font-semibold text-charcoal text-lg">Tier A</span>
+                <span className="font-semibold text-charcoal text-lg">
+                  Tier A
+                </span>
               </div>
-              <span className="text-xs font-medium text-gold bg-gold/10 px-2 py-1 rounded-full">Standard</span>
+              <span className="text-xs font-medium text-gold bg-gold/10 px-2 py-1 rounded-full">
+                Standard
+              </span>
             </div>
             <div className="pl-8">
               <p className="text-sm text-gray-warm">Video with Title</p>
               <ul className="mt-2 space-y-1">
                 <li className="flex items-center gap-2 text-xs text-charcoal">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-emerald flex-shrink-0"><path d="M2 6L5 9L10 3"/></svg>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="text-emerald flex-shrink-0"
+                  >
+                    <path d="M2 6L5 9L10 3" />
+                  </svg>
                   360° interactive viewer
                 </li>
                 <li className="flex items-center gap-2 text-xs text-charcoal">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-emerald flex-shrink-0"><path d="M2 6L5 9L10 3"/></svg>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="text-emerald flex-shrink-0"
+                  >
+                    <path d="M2 6L5 9L10 3" />
+                  </svg>
                   Title overlay
                 </li>
               </ul>
@@ -390,47 +488,83 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
           {/* Tier B */}
           <label
             className={`relative flex flex-col gap-2 p-5 rounded-xl border-2 cursor-pointer transition-all ${
-              tier === 'B'
-                ? 'border-gold bg-gold/5'
-                : 'border-gray-light hover:border-gold/40 hover:bg-cream/30'
+              tier === "B"
+                ? "border-gold bg-gold/5"
+                : "border-gray-light hover:border-gold/40 hover:bg-cream/30"
             }`}
           >
             <input
               type="radio"
               name="tier"
               value="B"
-              checked={tier === 'B'}
-              onChange={() => setTier('B')}
+              checked={tier === "B"}
+              onChange={() => setTier("B")}
               className="sr-only"
             />
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div
                   className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                    tier === 'B' ? 'border-gold bg-gold' : 'border-gray-light'
+                    tier === "B" ? "border-gold bg-gold" : "border-gray-light"
                   }`}
                 >
-                  {tier === 'B' && (
+                  {tier === "B" && (
                     <div className="w-2 h-2 rounded-full bg-white" />
                   )}
                 </div>
-                <span className="font-semibold text-charcoal text-lg">Tier B</span>
+                <span className="font-semibold text-charcoal text-lg">
+                  Tier B
+                </span>
               </div>
-              <span className="text-xs font-medium text-gold bg-gold/10 px-2 py-1 rounded-full">Premium</span>
+              <span className="text-xs font-medium text-gold bg-gold/10 px-2 py-1 rounded-full">
+                Premium
+              </span>
             </div>
             <div className="pl-8">
-              <p className="text-sm text-gray-warm">Video + Logo + Embed Link</p>
+              <p className="text-sm text-gray-warm">
+                Video + Logo + Embed Link
+              </p>
               <ul className="mt-2 space-y-1">
                 <li className="flex items-center gap-2 text-xs text-charcoal">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-emerald flex-shrink-0"><path d="M2 6L5 9L10 3"/></svg>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="text-emerald flex-shrink-0"
+                  >
+                    <path d="M2 6L5 9L10 3" />
+                  </svg>
                   Everything in Tier A
                 </li>
                 <li className="flex items-center gap-2 text-xs text-charcoal">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-emerald flex-shrink-0"><path d="M2 6L5 9L10 3"/></svg>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="text-emerald flex-shrink-0"
+                  >
+                    <path d="M2 6L5 9L10 3" />
+                  </svg>
                   Brand logo overlay
                 </li>
                 <li className="flex items-center gap-2 text-xs text-charcoal">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-emerald flex-shrink-0"><path d="M2 6L5 9L10 3"/></svg>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="text-emerald flex-shrink-0"
+                  >
+                    <path d="M2 6L5 9L10 3" />
+                  </svg>
                   Embed link for websites
                 </li>
               </ul>
@@ -454,10 +588,10 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
           {...getFrameRootProps()}
           className={`p-10 border-2 border-dashed rounded-xl transition-all cursor-pointer ${
             isFrameDragActive
-              ? 'border-gold bg-gold/5'
-              : frameStatus === 'low'
-              ? 'border-ruby/40 bg-ruby/5'
-              : 'border-gray-light hover:border-gold/50 hover:bg-cream/30'
+              ? "border-gold bg-gold/5"
+              : frameStatus === "low"
+                ? "border-ruby/40 bg-ruby/5"
+                : "border-gray-light hover:border-gold/50 hover:bg-cream/30"
           }`}
         >
           <input {...getFrameInputProps()} />
@@ -469,15 +603,19 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
               fill="none"
               stroke="currentColor"
               strokeWidth="1.5"
-              className={`mx-auto mb-4 ${frameStatus === 'low' ? 'text-ruby' : 'text-gold'}`}
+              className={`mx-auto mb-4 ${frameStatus === "low" ? "text-ruby" : "text-gold"}`}
             >
               <rect x="8" y="8" width="32" height="32" rx="4" />
               <path d="M24 32V20M24 20L20 24M24 20L28 24" />
             </svg>
             <h3 className="text-base font-medium text-charcoal mb-1">
-              {isFrameDragActive ? 'Drop frames here' : 'Drop rotation frames here'}
+              {isFrameDragActive
+                ? "Drop frames here"
+                : "Drop rotation frames here"}
             </h3>
-            <p className="text-sm text-gray-warm mb-3">or click to browse JPG / PNG files</p>
+            <p className="text-sm text-gray-warm mb-3">
+              or click to browse JPG / PNG files
+            </p>
             <div className="inline-flex gap-4 text-xs text-gray-cool bg-cream/50 px-4 py-2 rounded-full">
               <span>Min: {MIN_FRAMES} frames</span>
               <span>·</span>
@@ -490,10 +628,14 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
           <div className="mt-4 p-4 bg-cream/30 rounded-lg border border-gray-light/50 flex items-center justify-between">
             <div className="flex gap-6 text-sm">
               <span>
-                <span className="text-gray-warm">Frames:</span>{' '}
-                <span className="font-semibold text-charcoal">{imageFiles.length}</span>
+                <span className="text-gray-warm">Frames:</span>{" "}
+                <span className="font-semibold text-charcoal">
+                  {imageFiles.length}
+                </span>
               </span>
-              <span className={`font-medium ${frameStatusColor}`}>{frameStatusLabel}</span>
+              <span className={`font-medium ${frameStatusColor}`}>
+                {frameStatusLabel}
+              </span>
             </div>
             <button
               onClick={() => setImageFiles([])}
@@ -508,7 +650,10 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
         {imageFiles.length > 0 && (
           <div className="mt-4 flex gap-2 flex-wrap max-h-32 overflow-y-auto">
             {imageFiles.slice(0, 12).map((f, i) => (
-              <div key={i} className="relative w-14 h-14 rounded-lg overflow-hidden border border-gray-light/50 bg-cream flex-shrink-0">
+              <div
+                key={i}
+                className="relative w-14 h-14 rounded-lg overflow-hidden border border-gray-light/50 bg-cream flex-shrink-0"
+              >
                 <img
                   src={URL.createObjectURL(f)}
                   alt={`frame-${i}`}
@@ -526,19 +671,22 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
       </section>
 
       {/* Logo Upload (Tier B) */}
-      {tier === 'B' && (
+      {tier === "B" && (
         <section className="bg-white rounded-xl border border-gray-light/50 p-6">
           <h2 className="font-serif text-xl text-charcoal mb-5">
-            Brand Logo <span className="text-ruby">*</span>
+            Brand Logo{" "}
+            <span className="text-gray-warm text-sm font-normal">
+              (Optional)
+            </span>
           </h2>
           <div
             {...getLogoRootProps()}
             className={`p-8 border-2 border-dashed rounded-xl transition-all cursor-pointer ${
               isLogoDragActive
-                ? 'border-gold bg-gold/5'
+                ? "border-gold bg-gold/5"
                 : logoFile
-                ? 'border-emerald/40 bg-emerald/5'
-                : 'border-gray-light hover:border-gold/50 hover:bg-cream/30'
+                  ? "border-emerald/40 bg-emerald/5"
+                  : "border-gray-light hover:border-gold/50 hover:bg-cream/30"
             }`}
           >
             <input {...getLogoInputProps()} />
@@ -550,26 +698,155 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
                   className="w-16 h-16 object-contain rounded-lg border border-gray-light bg-white p-1"
                 />
                 <div>
-                  <p className="text-sm font-medium text-charcoal">{logoFile.name}</p>
-                  <p className="text-xs text-gray-warm mt-0.5">Click to replace</p>
+                  <p className="text-sm font-medium text-charcoal">
+                    {logoFile.name}
+                  </p>
+                  <p className="text-xs text-gray-warm mt-0.5">
+                    Click to replace
+                  </p>
                 </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setLogoFile(null); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLogoFile(null);
+                  }}
                   className="ml-auto w-8 h-8 rounded-lg border border-ruby/30 hover:bg-ruby/10 text-ruby flex items-center justify-center transition-all"
                 >
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 14 14"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  >
                     <path d="M3 3L11 11M11 3L3 11" />
                   </svg>
                 </button>
               </div>
             ) : (
               <div className="text-center">
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-3 text-gold">
+                <svg
+                  width="40"
+                  height="40"
+                  viewBox="0 0 40 40"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="mx-auto mb-3 text-gold"
+                >
                   <rect x="6" y="6" width="28" height="28" rx="4" />
                   <path d="M20 26V16M20 16L16 20M20 16L24 20" />
                 </svg>
-                <p className="text-sm font-medium text-charcoal mb-1">Drop logo here</p>
+                <p className="text-sm font-medium text-charcoal mb-1">
+                  Drop logo here
+                </p>
                 <p className="text-xs text-gray-warm">PNG, JPG, SVG, WebP</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Certificate Upload (Tier B) */}
+      {tier === "B" && (
+        <section className="bg-white rounded-xl border border-gray-light/50 p-6">
+          <h2 className="font-serif text-xl text-charcoal mb-5">
+            Certificate{" "}
+            <span className="text-gray-warm text-sm font-normal">
+              (Optional)
+            </span>
+          </h2>
+          <div
+            {...getCertificateRootProps()}
+            className={`p-8 border-2 border-dashed rounded-xl transition-all cursor-pointer ${
+              isCertificateDragActive
+                ? "border-gold bg-gold/5"
+                : certificateFile
+                  ? "border-emerald/40 bg-emerald/5"
+                  : "border-gray-light hover:border-gold/50 hover:bg-cream/30"
+            }`}
+          >
+            <input {...getCertificateInputProps()} />
+            {certificateFile ? (
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-gold/10 border border-gold/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                  {certificateFile.type === "application/pdf" ? (
+                    <svg
+                      width="32"
+                      height="32"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="text-gold"
+                    >
+                      <rect x="4" y="2" width="16" height="20" rx="2" />
+                      <path d="M9 7H15M9 12H15M9 17H12" />
+                    </svg>
+                  ) : (
+                    <svg
+                      width="32"
+                      height="32"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="text-gold"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <path d="M21 15l-5-5L5 21" />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-charcoal">
+                    {certificateFile.name}
+                  </p>
+                  <p className="text-xs text-gray-warm mt-0.5">
+                    {(certificateFile.size / 1024 / 1024).toFixed(2)} MB · Click
+                    to replace
+                  </p>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCertificateFile(null);
+                  }}
+                  className="w-8 h-8 rounded-lg border border-ruby/30 hover:bg-ruby/10 text-ruby flex items-center justify-center transition-all flex-shrink-0"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 14 14"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  >
+                    <path d="M3 3L11 11M11 3L3 11" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <div className="text-center">
+                <svg
+                  width="40"
+                  height="40"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="mx-auto mb-3 text-gold"
+                >
+                  <rect x="4" y="2" width="16" height="20" rx="2" />
+                  <path d="M9 7H15M9 12H15M9 17H12" />
+                  <path d="M12 22V14M12 14L10 16M12 14L14 16" />
+                </svg>
+                <p className="text-sm font-medium text-charcoal mb-1">
+                  Drop certificate here
+                </p>
+                <p className="text-xs text-gray-warm">PDF, JPG, or PNG</p>
               </div>
             )}
           </div>
@@ -590,7 +867,14 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
             </>
           ) : (
             <>
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
                 <path d="M9 14V6M9 6L6 9M9 6L12 9" />
                 <rect x="3" y="3" width="12" height="12" rx="2" />
               </svg>
@@ -599,7 +883,8 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
           )}
         </button>
         <p className="text-xs text-gray-warm">
-          After submitting, you can copy the link and optionally send it via WhatsApp.
+          After submitting, you can copy the link and optionally send it via
+          WhatsApp.
         </p>
       </div>
     </div>
