@@ -28,7 +28,7 @@ export interface Gemstone {
   customerName: string;
   customerContact: string;
   customerEmail?: string;
-  status: 'uploaded' | 'processing' | 'completed';
+  status: 'draft' | 'uploaded' | 'processing' | 'completed';
   frames: string[];
   thumbnail?: string;
   certificateId?: string;

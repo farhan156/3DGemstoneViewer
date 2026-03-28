@@ -5,9 +5,10 @@ import { cn } from '@/lib/utils';
 interface SidebarProps {
   activePage: string;
   onNavigate: (page: string) => void;
+  onLogout: () => void;
 }
 
-export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
+export default function Sidebar({ activePage, onNavigate, onLogout }: SidebarProps) {
   const navItems = [
     {
       id: 'add-new',
@@ -26,6 +27,16 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
           <rect x="3" y="3" width="14" height="14" rx="2" />
           <path d="M6 7H14M6 10H14M6 13H10" />
+        </svg>
+      ),
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <circle cx="10" cy="10" r="3" />
+          <path d="M10 2.5V4.5M10 15.5V17.5M2.5 10H4.5M15.5 10H17.5M4.6 4.6L6 6M14 14L15.4 15.4M4.6 15.4L6 14M14 6L15.4 4.6" />
         </svg>
       ),
     },
@@ -62,6 +73,15 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
           </button>
         ))}
       </nav>
+
+      <div className="p-4 border-t border-gray-light/50">
+        <button
+          onClick={onLogout}
+          className="w-full h-11 rounded-lg border border-gray-light text-charcoal text-sm font-medium hover:bg-cream transition-all"
+        >
+          Logout
+        </button>
+      </div>
     </aside>
   );
 }

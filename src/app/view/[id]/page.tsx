@@ -49,5 +49,16 @@ export default function ViewerPage() {
     );
   }
 
+  if (gemstone.status !== 'completed') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-pearl">
+        <div className="text-center max-w-md px-6">
+          <h1 className="text-4xl font-serif text-charcoal mb-4">Link Not Available Yet</h1>
+          <p className="text-gray-warm">This order is still in draft or processing and cannot be viewed publicly.</p>
+        </div>
+      </div>
+    );
+  }
+
   return <PublicViewer gemstone={gemstone} />;
 }

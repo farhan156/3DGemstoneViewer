@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Gemstone, Certificate } from '@/types/gemstone';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, setDoc, getDocs, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, setDoc, getDocs, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 
 interface GemstoneStore {
   gemstones: Gemstone[];

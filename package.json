@@ -5,10 +5,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "rm -rf .next && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "login:credentials": "node scripts/show-login-credentials.mjs"
   },
   "dependencies": {
     "cloudinary": "^2.8.0",
