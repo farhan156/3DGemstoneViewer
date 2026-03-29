@@ -12,7 +12,8 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [showHintModal, setShowHintModal] = useState(true);
   const dragStartX = useRef(0);
   const viewerRef = useRef<HTMLDivElement>(null);
   const imageCache = useRef<HTMLImageElement[]>([]);
@@ -21,6 +22,7 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const lastFrameTimeRef = useRef(0);
   const frameIntervalRef = useRef(25); // milliseconds between frames - much faster for smooth playback
   const currentFrameRef = useRef(0); // Track frame without state batching
+  const dragOccurredRef = useRef(false); // Track if actual drag occurred
 
   // Auto-rotation when playing using requestAnimationFrame for smooth animation
   useEffect(() => {
@@ -78,7 +80,7 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     dragStartX.current = e.clientX;
-    pauseOnDrag();
+    dragOccurredRef.current = false;
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -89,6 +91,8 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     const frameDelta = Math.floor(delta / sensitivity);
 
     if (frameDelta !== 0) {
+      dragOccurredRef.current = true;
+      pauseOnDrag();
       if (animationFrame.current) {
         cancelAnimationFrame(animationFrame.current);
       }
@@ -107,13 +111,22 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
 
   const handleMouseUp = () => {
     setIsDragging(false);
+    // If no drag occurred, toggle play/pause on click
+    if (!dragOccurredRef.current) {
+      setIsPlaying((p) => !p);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+    // Don't toggle play state on mouse leave, just stop dragging
   };
 
   // Touch handlers for mobile
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsDragging(true);
     dragStartX.current = e.touches[0].clientX;
-    pauseOnDrag();
+    dragOccurredRef.current = false;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -124,6 +137,8 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     const frameDelta = Math.floor(delta / sensitivity);
 
     if (frameDelta !== 0) {
+      dragOccurredRef.current = true;
+      pauseOnDrag();
       if (animationFrame.current) {
         cancelAnimationFrame(animationFrame.current);
       }
@@ -142,6 +157,15 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
 
   const handleTouchEnd = () => {
     setIsDragging(false);
+    // If no drag occurred, toggle play/pause on tap
+    if (!dragOccurredRef.current) {
+      setIsPlaying((p) => !p);
+    }
+  };
+
+  const handleTouchCancel = () => {
+    setIsDragging(false);
+    // Don't toggle on cancel, just stop dragging
   };
 
   const rotateLeft = () => {
@@ -186,6 +210,15 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     loadImages();
   }, [gemstone.frames]);
 
+  // Show hint modal and fade it away after 1.5 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowHintModal(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     const handleGlobalMouseUp = () => setIsDragging(false);
     document.addEventListener("mouseup", handleGlobalMouseUp);
@@ -198,55 +231,42 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-pearl">
+    <div className="min-h-screen flex flex-col bg-white">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 p-6 bg-white/95 backdrop-blur-sm border-b border-gray-light/50 shadow-sm">
-        <div className="max-w-screen-2xl mx-auto flex items-center gap-3">
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 32 32"
-            fill="none"
-            className="text-gold"
-          >
-            <path
-              d="M16 2L6 10L8 24L16 30L24 24L26 10L16 2Z"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinejoin="bevel"
-              fill="currentColor"
-              fillOpacity="0.1"
-            />
-            <path
-              d="M16 2V30M6 10H26M8 24H24"
-              stroke="currentColor"
-              strokeWidth="1"
-              opacity="0.5"
-            />
-          </svg>
-          <span className="text-charcoal font-serif font-semibold text-base tracking-wide">
-            GEMSTONE VIEWER
-          </span>
-        </div>
+      <header
+        className="fixed top-0 left-0 right-0 z-50 p-6 backdrop-blur-sm bg-cover bg-center flex items-center justify-center"
+        style={{
+          backgroundImage: "url(/Header.png)",
+          boxShadow: "0 14px 29px rgba(175, 20, 22, 0.22)",
+        }}
+      >
+        <img
+          src="/TFS-text.png"
+          alt="The Facet Studio"
+          className="h-8 object-contain"
+        />
       </header>
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center px-4 md:px-8 pt-24 md:pt-28 pb-8 md:pb-16">
-        <div className="max-w-screen-2xl w-full grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-4 md:gap-8 items-start lg:items-center">
+        <div
+          className={`max-w-screen-2xl w-full ${gemstone.tier === "A" ? "flex flex-col items-center" : "grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-4 md:gap-8 items-start lg:items-center"}`}
+        >
           {/* 360° Viewer */}
           <div className="relative w-full max-w-3xl mx-auto aspect-square">
             <div
               ref={viewerRef}
-              className={`w-full h-full bg-cream border border-gray-light/50 rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg overflow-hidden touch-none ${
+              className={`w-full h-full bg-white flex items-center justify-center overflow-hidden touch-none ${
                 isDragging ? "cursor-grabbing" : "cursor-grab"
               }`}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchCancel}
             >
               {gemstone.frames && gemstone.frames.length > 0 ? (
                 <>
@@ -306,275 +326,248 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
               </div>
             )}
 
-            <div className="absolute bottom-3 md:bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5 md:gap-2 p-2 md:p-3 bg-white/95 backdrop-blur-md border border-gray-light/50 rounded-lg shadow-lg">
-              <button
-                onClick={rotateLeft}
-                className="w-9 h-9 md:w-10 md:h-10 border border-gray-light active:bg-cream hover:bg-cream text-charcoal transition-all flex items-center justify-center rounded touch-manipulation"
-                title="Rotate left"
+            {/* Hint Modal - Desktop only */}
+            {showHintModal && (
+              <div
+                className={`absolute inset-0 flex items-center justify-center rounded-lg pointer-events-none transition-opacity duration-500 ${
+                  showHintModal ? "opacity-100" : "opacity-0"
+                }`}
+                style={{
+                  animation: showHintModal
+                    ? "fadeOut 1.5s ease-in-out forwards"
+                    : "none",
+                }}
               >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 18 18"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                >
-                  <path d="M11 5L8 9L11 13" />
-                  <circle cx="9" cy="9" r="7" />
-                </svg>
-              </button>
-
-              {/* Play / Pause */}
-              <button
-                onClick={() => setIsPlaying((p) => !p)}
-                title={isPlaying ? "Pause" : "Play"}
-                className="w-9 h-9 md:w-10 md:h-10 border border-gray-light active:bg-gold/20 hover:bg-gold/10 text-charcoal transition-all flex items-center justify-center rounded touch-manipulation"
-              >
-                {isPlaying ? (
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 14 14"
-                    fill="currentColor"
-                  >
-                    <rect x="2" y="2" width="4" height="10" rx="1" />
-                    <rect x="8" y="2" width="4" height="10" rx="1" />
-                  </svg>
-                ) : (
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 14 14"
-                    fill="currentColor"
-                  >
-                    <path d="M3 2L12 7L3 12V2Z" />
-                  </svg>
-                )}
-              </button>
-
-              <div className="flex items-center justify-center min-w-[60px] md:min-w-[70px] text-xs text-charcoal font-mono">
-                <span className="font-semibold">{currentFrame + 1}</span>
-                <span className="text-gray-warm mx-1">/</span>
-                <span className="text-gray-warm">
-                  {gemstone.frames?.length || 0}
-                </span>
+                <style>{`
+                  @keyframes fadeOut {
+                    0% {
+                      opacity: 1;
+                    }
+                    80% {
+                      opacity: 1;
+                    }
+                    100% {
+                      opacity: 0;
+                    }
+                  }
+                `}</style>
+                <div className="bg-black/80 backdrop-blur-sm text-white px-6 py-3 rounded-lg font-medium text-sm shadow-lg">
+                  Tap to pause · Drag to rotate
+                </div>
               </div>
-              <button
-                onClick={rotateRight}
-                className="w-9 h-9 md:w-10 md:h-10 border border-gray-light active:bg-cream hover:bg-cream text-charcoal transition-all flex items-center justify-center rounded touch-manipulation"
-                title="Rotate right"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 18 18"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                >
-                  <path d="M7 5L10 9L7 13" />
-                  <circle cx="9" cy="9" r="7" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="absolute top-3 md:top-6 left-1/2 -translate-x-1/2 text-xs text-gray-warm bg-white/90 px-3 md:px-5 py-1.5 md:py-2 backdrop-blur-sm border border-gray-light/50 rounded-full shadow-sm">
-              <span className="hidden md:inline">
-                Drag to rotate · Click arrows to navigate
-              </span>
-              <span className="md:hidden">Swipe to rotate</span>
-            </div>
+            )}
           </div>
 
-          {/* Information Panel */}
-          <div className="bg-white border border-gray-light/50 rounded-xl md:rounded-2xl p-5 md:p-8 space-y-4 md:space-y-6 shadow-lg">
-            {/* Title (Tier A & B) */}
-            {gemstone.title && (
-              <div className="pb-5 border-b border-gray-light/50">
-                <h1 className="font-serif text-3xl md:text-4xl text-charcoal mb-1 tracking-tight leading-tight">
-                  {gemstone.title}
-                </h1>
-                {gemstone.tier && (
-                  <span
-                    className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full mt-2 ${
-                      gemstone.tier === "B"
-                        ? "bg-gold/15 text-gold"
-                        : "bg-cream text-charcoal"
-                    }`}
-                  >
-                    Tier {gemstone.tier}
+          {/* Floating Info Bar for Tier A */}
+          {gemstone.tier === "A" && gemstone.title && (
+            <div className="mt-6 w-full max-w-3xl mx-auto">
+              <div
+                className="bg-white px-6 md:px-8 py-4 rounded-lg border border-gold"
+                style={{
+                  boxShadow: "0 12px 24px rgba(175, 20, 22, 0.12)",
+                }}
+              >
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                  <h2 className="text-lg md:text-xl font-serif text-charcoal tracking-tight">
+                    {gemstone.title}
+                  </h2>
+                  <span className="text-sm text-charcoal font-mono tracking-wide">
+                    Gemstone #{gemstone.id}
                   </span>
-                )}
+                </div>
               </div>
-            )}
-
-            {/* Legacy name fallback */}
-            {!gemstone.title && visibility.showName && gemstone.name && (
-              <div className="pb-6 border-b border-gray-light/50">
-                <h1 className="font-serif text-4xl text-charcoal mb-2 tracking-tight leading-tight">
-                  {gemstone.name}
-                </h1>
-                {visibility.showType && gemstone.type && (
-                  <p className="text-gray-warm text-sm mb-1 capitalize">
-                    {gemstone.type}
-                  </p>
-                )}
-                <p className="text-gray-cool text-xs font-mono tracking-wide">
-                  ID: {gemstone.id}
-                </p>
-              </div>
-            )}
-
-            {/* Tier B logo in panel */}
-            {gemstone.tier === "B" && gemstone.logoUrl && (
-              <div className="flex items-center gap-3 pb-4 border-b border-gray-light/50">
-                <img
-                  src={gemstone.logoUrl}
-                  alt="Brand logo"
-                  className="w-10 h-10 object-contain"
-                />
-              </div>
-            )}
-
-            <div className="space-y-3">
-              {visibility.showCustomerName && gemstone.customerName && (
-                <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                  <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                    Customer Name
-                  </span>
-                  <span className="text-sm font-medium text-charcoal">
-                    {gemstone.customerName}
-                  </span>
-                </div>
-              )}
-              {visibility.showCustomerContact && gemstone.customerContact && (
-                <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                  <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                    Contact
-                  </span>
-                  <span className="text-sm font-medium text-charcoal">
-                    {gemstone.customerContact}
-                  </span>
-                </div>
-              )}
-              {visibility.showCustomerEmail && gemstone.customerEmail && (
-                <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                  <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                    Email
-                  </span>
-                  <span className="text-sm font-medium text-charcoal">
-                    {gemstone.customerEmail}
-                  </span>
-                </div>
-              )}
-              {visibility.showWeight && gemstone.weight && (
-                <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                  <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                    Weight
-                  </span>
-                  <span className="text-sm font-medium text-charcoal">
-                    {gemstone.weight} carats
-                  </span>
-                </div>
-              )}
-              {visibility.showCut && gemstone.cut && (
-                <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                  <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                    Cut
-                  </span>
-                  <span className="text-sm font-medium text-charcoal">
-                    {gemstone.cut}
-                  </span>
-                </div>
-              )}
-              {visibility.showClarity && gemstone.clarity && (
-                <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                  <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                    Clarity
-                  </span>
-                  <span className="text-sm font-medium text-charcoal">
-                    {gemstone.clarity}
-                  </span>
-                </div>
-              )}
-              {visibility.showColorGrade && gemstone.colorGrade && (
-                <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                  <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                    Color Grade
-                  </span>
-                  <span className="text-sm font-medium text-charcoal">
-                    {gemstone.colorGrade}
-                  </span>
-                </div>
-              )}
-              {visibility.showOrigin && gemstone.origin && (
-                <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                  <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                    Origin
-                  </span>
-                  <span className="text-sm font-medium text-charcoal">
-                    {gemstone.origin}
-                  </span>
-                </div>
-              )}
             </div>
+          )}
 
-            {visibility.showCertificate && gemstone.certificateUrl && (
-              <div className="p-5 bg-cream/50 border border-gold/20 rounded-lg border-l-4 border-l-gold">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gold/10 border border-gold/30 rounded-lg flex items-center justify-center text-gold">
+          {/* Information Panel - Only for Tier B */}
+          {gemstone.tier === "B" && (
+            <div className="bg-white border border-gray-light/50 rounded-xl md:rounded-2xl p-5 md:p-8 space-y-4 md:space-y-6 shadow-lg">
+              {/* Title (Tier A & B) */}
+              {gemstone.title && (
+                <div className="pb-5 border-b border-gray-light/50">
+                  <h1 className="font-serif text-3xl md:text-4xl text-charcoal mb-1 tracking-tight leading-tight">
+                    {gemstone.title}
+                  </h1>
+                  {gemstone.tier && (
+                    <span
+                      className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full mt-2 ${
+                        gemstone.tier === "B"
+                          ? "bg-gold/15 text-gold"
+                          : "bg-cream text-charcoal"
+                      }`}
+                    >
+                      Tier {gemstone.tier}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Legacy name fallback */}
+              {!gemstone.title && visibility.showName && gemstone.name && (
+                <div className="pb-6 border-b border-gray-light/50">
+                  <h1 className="font-serif text-4xl text-charcoal mb-2 tracking-tight leading-tight">
+                    {gemstone.name}
+                  </h1>
+                  {visibility.showType && gemstone.type && (
+                    <p className="text-gray-warm text-sm mb-1 capitalize">
+                      {gemstone.type}
+                    </p>
+                  )}
+                  <p className="text-gray-cool text-xs font-mono tracking-wide">
+                    ID: {gemstone.id}
+                  </p>
+                </div>
+              )}
+
+              {/* Tier B logo in panel */}
+              {gemstone.tier === "B" && gemstone.logoUrl && (
+                <div className="flex items-center gap-3 pb-4 border-b border-gray-light/50">
+                  <img
+                    src={gemstone.logoUrl}
+                    alt="Brand logo"
+                    className="w-10 h-10 object-contain"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {visibility.showCustomerName && gemstone.customerName && (
+                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
+                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
+                      Customer Name
+                    </span>
+                    <span className="text-sm font-medium text-charcoal">
+                      {gemstone.customerName}
+                    </span>
+                  </div>
+                )}
+                {visibility.showCustomerContact && gemstone.customerContact && (
+                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
+                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
+                      Contact
+                    </span>
+                    <span className="text-sm font-medium text-charcoal">
+                      {gemstone.customerContact}
+                    </span>
+                  </div>
+                )}
+                {visibility.showCustomerEmail && gemstone.customerEmail && (
+                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
+                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
+                      Email
+                    </span>
+                    <span className="text-sm font-medium text-charcoal">
+                      {gemstone.customerEmail}
+                    </span>
+                  </div>
+                )}
+                {visibility.showWeight && gemstone.weight && (
+                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
+                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
+                      Weight
+                    </span>
+                    <span className="text-sm font-medium text-charcoal">
+                      {gemstone.weight} carats
+                    </span>
+                  </div>
+                )}
+                {visibility.showCut && gemstone.cut && (
+                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
+                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
+                      Cut
+                    </span>
+                    <span className="text-sm font-medium text-charcoal">
+                      {gemstone.cut}
+                    </span>
+                  </div>
+                )}
+                {visibility.showClarity && gemstone.clarity && (
+                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
+                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
+                      Clarity
+                    </span>
+                    <span className="text-sm font-medium text-charcoal">
+                      {gemstone.clarity}
+                    </span>
+                  </div>
+                )}
+                {visibility.showColorGrade && gemstone.colorGrade && (
+                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
+                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
+                      Color Grade
+                    </span>
+                    <span className="text-sm font-medium text-charcoal">
+                      {gemstone.colorGrade}
+                    </span>
+                  </div>
+                )}
+                {visibility.showOrigin && gemstone.origin && (
+                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
+                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
+                      Origin
+                    </span>
+                    <span className="text-sm font-medium text-charcoal">
+                      {gemstone.origin}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {visibility.showCertificate && gemstone.certificateUrl && (
+                <div className="p-5 bg-cream/50 border border-gold/20 rounded-lg border-l-4 border-l-gold">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-gold/10 border border-gold/30 rounded-lg flex items-center justify-center text-gold">
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                      >
+                        <rect x="6" y="4" width="12" height="16" rx="1" />
+                        <path d="M10 8H14M10 12H14" />
+                        <circle cx="18" cy="18" r="4" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-charcoal mb-0.5">
+                        Certification
+                      </div>
+                      <div className="text-xs font-mono text-gray-warm">
+                        Certificate Available
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowCertificate(true)}
+                    className="w-full h-11 bg-gold text-white font-medium text-sm hover:bg-gold-dark rounded-lg transition-all flex items-center justify-center gap-2 shadow-md"
+                  >
                     <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 18 18"
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="1.5"
                     >
-                      <rect x="6" y="4" width="12" height="16" rx="1" />
-                      <path d="M10 8H14M10 12H14" />
-                      <circle cx="18" cy="18" r="4" />
+                      <circle cx="9" cy="9" r="6" />
+                      <circle cx="9" cy="9" r="2" />
                     </svg>
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-charcoal mb-0.5">
-                      Certification
-                    </div>
-                    <div className="text-xs font-mono text-gray-warm">
-                      Certificate Available
-                    </div>
-                  </div>
+                    View Certificate
+                  </button>
                 </div>
-                <button
-                  onClick={() => setShowCertificate(true)}
-                  className="w-full h-11 bg-gold text-white font-medium text-sm hover:bg-gold-dark rounded-lg transition-all flex items-center justify-center gap-2 shadow-md"
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 18 18"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  >
-                    <circle cx="9" cy="9" r="6" />
-                    <circle cx="9" cy="9" r="2" />
-                  </svg>
-                  View Certificate
-                </button>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
 
       {/* Footer */}
       <footer className="py-8 border-t border-white/[0.06] text-center">
         <p className="text-sm text-smoke">
-          Powered by{" "}
-          <span className="text-silver font-medium">Gemstone Forge</span> · 360°
-          Interactive Gemstone Platform
+          The Facet Studio powered by{" "}
+          <span className="text-silver font-medium">FERA DxGITAL</span>
         </p>
       </footer>
 
