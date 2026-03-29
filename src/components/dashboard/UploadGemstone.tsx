@@ -54,10 +54,12 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
     folder: string,
   ): Promise<string> => {
     const formData = new FormData();
-    formData.append("file", file);
 
     // For PDFs, use raw upload preset, for images use regular preset
     const isPdf = file.type === "application/pdf";
+
+    formData.append("file", file);
+
     const uploadPreset = isPdf
       ? process.env.NEXT_PUBLIC_CLOUDINARY_RAW_UPLOAD_PRESET!
       : process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
@@ -160,26 +162,62 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
         }),
       );
 
-      // Upload all images to Cloudinary
+      // Upload all files with proper concurrency control (30 simultaneous)
       toast.loading("Uploading images...", { id: loadingToast });
       const frameUrlsWithNames: Array<{ url: string; name: string }> = [];
-      for (let i = 0; i < sortedImageFiles.length; i++) {
-        const url = await uploadToCloudinary(
-          sortedImageFiles[i],
-          `gemstones/${gemId}/frames`,
-        );
-        frameUrlsWithNames.push({ url, name: sortedImageFiles[i].name });
-        toast.loading(
-          `Uploading images... ${i + 1}/${sortedImageFiles.length}`,
-          { id: loadingToast },
-        );
-      }
+      const concurrencyLimit = 50;
+      let completed = 0;
+      let activeUploads = 0;
+
+      // Semaphore-based upload queue
+      const uploadFile = async (file: File, fileName: string) => {
+        // Wait until we have capacity
+        while (activeUploads >= concurrencyLimit) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+
+        activeUploads++;
+        try {
+          const url = await uploadToCloudinary(
+            file,
+            `gemstones/${gemId}/frames`,
+          );
+          frameUrlsWithNames.push({ url, name: fileName });
+          completed++;
+          toast.loading(
+            `Uploading images... ${completed}/${sortedImageFiles.length}`,
+            { id: loadingToast },
+          );
+        } catch (error) {
+          console.error(`Failed to upload ${fileName}:`, error);
+          throw error;
+        } finally {
+          activeUploads--;
+        }
+      };
+
+      // Start all uploads (they'll self-regulate via the semaphore)
+      await Promise.all(
+        sortedImageFiles.map((file) => uploadFile(file, file.name)),
+      );
 
       // Sort frame URLs by filename to ensure correct sequence
       const frameUrls = frameUrlsWithNames
-        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }))
+        .sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, {
+            numeric: true,
+            sensitivity: "base",
+          }),
+        )
         .map((item) => item.url);
+
+      // Verify all frames were uploaded
+      if (frameUrls.length !== sortedImageFiles.length) {
+        throw new Error(
+          `Upload incomplete: ${frameUrls.length}/${sortedImageFiles.length} frames uploaded`,
+        );
       }
+    }
 
       // Create gemstone with customer data and optional fields
       const newGem: any = {
