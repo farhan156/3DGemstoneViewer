@@ -1,16 +1,18 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Sidebar from '@/components/dashboard/Sidebar';
-import AddNewOrder from '@/components/dashboard/AddNewOrder';
-import Orders from '@/components/dashboard/Orders';
-import Settings from '@/components/dashboard/Settings';
-import { useAuthStore } from '@/store/authStore';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Sidebar from "@/components/dashboard/Sidebar";
+import AddNewOrder from "@/components/dashboard/AddNewOrder";
+import Orders from "@/components/dashboard/Orders";
+import Settings from "@/components/dashboard/Settings";
+import { useAuthStore } from "@/store/authStore";
+import type { Gemstone } from "@/types/gemstone";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [activePage, setActivePage] = useState('add-new');
+  const [activePage, setActivePage] = useState("add-new");
+  const [editingOrder, setEditingOrder] = useState<Gemstone | null>(null);
   const user = useAuthStore((state) => state.user);
   const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
@@ -22,25 +24,42 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!isAuthLoading && !user) {
-      router.replace('/auth/login');
+      router.replace("/auth/login");
     }
   }, [isAuthLoading, router, user]);
 
   const handleLogout = async () => {
     await logout();
-    router.replace('/auth/login');
+    router.replace("/auth/login");
   };
 
   const renderPage = () => {
     switch (activePage) {
-      case 'add-new':
-        return <AddNewOrder onComplete={() => setActivePage('orders')} />;
-      case 'orders':
-        return <Orders />;
-      case 'settings':
+      case "add-new":
+        return <AddNewOrder onComplete={() => setActivePage("orders")} />;
+      case "edit-order":
+        return (
+          <AddNewOrder
+            initialDraft={editingOrder || undefined}
+            onComplete={() => {
+              setEditingOrder(null);
+              setActivePage("orders");
+            }}
+          />
+        );
+      case "orders":
+        return (
+          <Orders
+            onEditOrder={(order) => {
+              setEditingOrder(order);
+              setActivePage("edit-order");
+            }}
+          />
+        );
+      case "settings":
         return <Settings />;
       default:
-        return <AddNewOrder onComplete={() => setActivePage('orders')} />;
+        return <AddNewOrder onComplete={() => setActivePage("orders")} />;
     }
   };
 
@@ -58,7 +77,11 @@ export default function DashboardPage() {
 
   return (
     <div className="flex min-h-screen bg-pearl">
-      <Sidebar activePage={activePage} onNavigate={setActivePage} onLogout={handleLogout} />
+      <Sidebar
+        activePage={activePage}
+        onNavigate={setActivePage}
+        onLogout={handleLogout}
+      />
       <main className="flex-1 ml-[280px] p-8 lg:p-12 animate-fade-in">
         {renderPage()}
       </main>

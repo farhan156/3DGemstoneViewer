@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useDropzone, type FileRejection } from "react-dropzone";
 import toast from "react-hot-toast";
 import { useGemstoneStore } from "@/store/gemstoneStore";
@@ -16,27 +16,58 @@ import type { Gemstone } from "@/types/gemstone";
 
 interface AddNewOrderProps {
   onComplete: () => void;
+  initialDraft?: Gemstone;
 }
 
 const MIN_FRAMES = 24;
 const IDEAL_FRAMES = 36;
 
-export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
+export default function AddNewOrder({
+  onComplete,
+  initialDraft,
+}: AddNewOrderProps) {
   const gemstones = useGemstoneStore((state) => state.gemstones);
+  const fetchGemstones = useGemstoneStore((state) => state.fetchGemstones);
   const addGemstone = useGemstoneStore((state) => state.addGemstone);
+  const updateGemstone = useGemstoneStore((state) => state.updateGemstone);
 
-  const [orderNumber, setOrderNumber] = useState(() =>
-    generateUniqueOrderNumber(gemstones.map((item) => item.orderNumber || "")),
+  const isEditMode = !!initialDraft;
+
+  const [orderNumber, setOrderNumber] = useState(
+    initialDraft?.orderNumber || "ORD-00001",
   );
-  const [customerName, setCustomerName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [title, setTitle] = useState("");
-  const [tier, setTier] = useState<"A" | "B">("A");
+  const [customerName, setCustomerName] = useState(
+    initialDraft?.customerName || "",
+  );
+  const [phoneNumber, setPhoneNumber] = useState(
+    initialDraft?.customerContact || "",
+  );
+  const [title, setTitle] = useState(initialDraft?.title || "");
+  const [tier, setTier] = useState<"A" | "B">(initialDraft?.tier || "A");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [createdLink, setCreatedLink] = useState<string | null>(null);
+  const [clearExistingFrames, setClearExistingFrames] = useState(false);
+
+  // Fetch gemstones on mount and update order number (only if not editing)
+  useEffect(() => {
+    const loadGemstones = async () => {
+      await fetchGemstones();
+    };
+    loadGemstones();
+  }, [fetchGemstones]);
+
+  // Update order number when gemstones change (only if not editing)
+  useEffect(() => {
+    if (!isEditMode) {
+      const newOrderNumber = generateUniqueOrderNumber(
+        gemstones.map((item) => item.orderNumber || ""),
+      );
+      setOrderNumber(newOrderNumber);
+    }
+  }, [gemstones, isEditMode]);
 
   const uploadToCloudinary = async (
     file: File,
@@ -150,11 +181,12 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
     ideal: "text-emerald",
   }[frameStatus];
 
-  const frameStatusLabel = getFrameValidationMessage(
-    imageFiles.length,
-    MIN_FRAMES,
-    IDEAL_FRAMES,
-  );
+  const existingFrameCount = initialDraft?.frames?.length || 0;
+  const totalFrameCount = existingFrameCount + imageFiles.length;
+
+  const frameStatusLabel = isEditMode
+    ? getFrameValidationMessage(totalFrameCount, MIN_FRAMES, IDEAL_FRAMES)
+    : getFrameValidationMessage(imageFiles.length, MIN_FRAMES, IDEAL_FRAMES);
 
   const copyLink = (link: string) => {
     navigator.clipboard.writeText(window.location.origin + link);
@@ -167,6 +199,88 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
       `Hello! Your 360 jewellery view is ready. View it here: ${window.location.origin}${link}`,
     );
     window.open(`https://wa.me/${cleaned}?text=${message}`, "_blank");
+  };
+
+  /**
+   * Upload frames with semaphore-based concurrency control
+   * Returns sorted frame URLs in the order they were uploaded
+   */
+  const uploadFramesWithSemaphore = async (
+    filesToUpload: File[],
+    toastId?: string,
+  ): Promise<string[]> => {
+    if (filesToUpload.length === 0) {
+      return [];
+    }
+
+    // Sort files by filename in ascending order
+    const sortedImageFiles = [...filesToUpload].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      }),
+    );
+
+    // Upload frames in parallel with proper concurrency control (30 simultaneous)
+    const frameUrlsWithNames: Array<{ url: string; name: string }> = [];
+    const concurrencyLimit = 30;
+    let completed = 0;
+    let activeUploads = 0;
+
+    // Semaphore-based upload queue
+    const uploadFile = async (file: File, fileName: string) => {
+      // Wait until we have capacity
+      while (activeUploads >= concurrencyLimit) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+
+      activeUploads++;
+      try {
+        const url = await uploadToCloudinary(
+          file,
+          `orders/${orderNumber}/frames`,
+        );
+        frameUrlsWithNames.push({ url, name: fileName });
+        completed++;
+        if (toastId) {
+          toast.loading(
+            `Uploading frames... ${completed}/${sortedImageFiles.length}`,
+            {
+              id: toastId,
+            },
+          );
+        }
+      } catch (error) {
+        console.error(`Failed to upload ${fileName}:`, error);
+        throw error;
+      } finally {
+        activeUploads--;
+      }
+    };
+
+    // Start all uploads (they'll self-regulate via the semaphore)
+    await Promise.all(
+      sortedImageFiles.map((file) => uploadFile(file, file.name)),
+    );
+
+    // Sort frame URLs by filename to ensure correct sequence
+    const newFrameUrls = frameUrlsWithNames
+      .sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        }),
+      )
+      .map((item) => item.url);
+
+    // Verify all frames were uploaded
+    if (newFrameUrls.length !== sortedImageFiles.length) {
+      throw new Error(
+        `Upload incomplete: ${newFrameUrls.length}/${sortedImageFiles.length} frames uploaded`,
+      );
+    }
+
+    return newFrameUrls;
   };
 
   const handleSaveDraft = async () => {
@@ -186,32 +300,67 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
     }
 
     setIsSavingDraft(true);
-    const loadingToast = toast.loading("Saving draft...");
+    const loadingToast = toast.loading(
+      isEditMode ? "Updating draft..." : "Saving draft...",
+    );
 
     try {
-      const gemId = generateGemstoneId();
       const now = new Date().toISOString();
 
-      const draftOrder: Gemstone = {
-        id: gemId,
-        orderNumber,
-        customerName: customerName.trim(),
-        customerContact: normalizePhoneNumber(phoneNumber),
-        tier,
-        title: title.trim() || undefined,
-        status: "draft",
-        frames: [],
-        createdAt: now,
-        updatedAt: now,
-      };
+      // Upload any new frames
+      let frameUrls = clearExistingFrames
+        ? []
+        : (initialDraft?.frames || []);
 
-      await addGemstone(draftOrder);
-      toast.dismiss(loadingToast);
-      toast.success("Draft saved");
+      if (imageFiles.length > 0) {
+        const newFrameUrls = await uploadFramesWithSemaphore(
+          imageFiles,
+          loadingToast,
+        );
+        frameUrls = [...frameUrls, ...newFrameUrls];
+        setImageFiles([]);
+      }
+
+      if (isEditMode) {
+        // Update existing draft
+        const updates: Partial<Gemstone> = {
+          customerName: customerName.trim(),
+          customerContact: normalizePhoneNumber(phoneNumber),
+          tier,
+          title: title.trim() || undefined,
+          frames: frameUrls,
+          updatedAt: now,
+        };
+
+        await updateGemstone(initialDraft!.id, updates);
+        toast.dismiss(loadingToast);
+        toast.success("Draft updated");
+      } else {
+        // Create new draft
+        const draftOrder: Gemstone = {
+          id: orderNumber,
+          orderNumber,
+          customerName: customerName.trim(),
+          customerContact: normalizePhoneNumber(phoneNumber),
+          tier,
+          title: title.trim() || undefined,
+          status: "draft",
+          frames: frameUrls,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        await addGemstone(draftOrder);
+        toast.dismiss(loadingToast);
+        toast.success("Draft saved");
+      }
+
       onComplete();
     } catch (error) {
       toast.dismiss(loadingToast);
-      toast.error("Failed to save draft");
+      toast.error(
+        isEditMode ? "Failed to update draft" : "Failed to save draft",
+      );
       console.error(error);
     } finally {
       setIsSavingDraft(false);
@@ -239,115 +388,103 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
       return;
     }
 
-    if (imageFiles.length < MIN_FRAMES) {
+    // Check total frames (existing + new for edit, or just new for create)
+    const existingFrames = clearExistingFrames
+      ? []
+      : initialDraft?.frames || [];
+    const totalFrames = existingFrames.length + imageFiles.length;
+
+    if (totalFrames < MIN_FRAMES) {
       toast.error(`Please upload at least ${MIN_FRAMES} rotation frames`);
       return;
     }
 
-    if (tier === "B" && !logoFile) {
+    if (tier === "B" && !logoFile && !initialDraft?.logoUrl) {
       toast.error("Please upload a logo for Tier B");
       return;
     }
 
     setIsSubmitting(true);
-    const loadingToast = toast.loading("Uploading frames...");
+    const loadingToast =
+      imageFiles.length > 0 ? toast.loading("Uploading frames...") : undefined;
 
     try {
-      const gemId = generateGemstoneId();
       const now = new Date().toISOString();
 
-      // Sort files by filename in ascending order
-      const sortedImageFiles = [...imageFiles].sort((a, b) =>
-        a.name.localeCompare(b.name, undefined, {
-          numeric: true,
-          sensitivity: "base",
-        }),
-      );
+      let frameUrls = clearExistingFrames
+        ? []
+        : (initialDraft?.frames || []);
 
-      // Upload frames in parallel with proper concurrency control (30 simultaneous)
-      const frameUrlsWithNames: Array<{ url: string; name: string }> = [];
-      const concurrencyLimit = 30;
-      let completed = 0;
-      let activeUploads = 0;
+      // Upload new frames if any
+      if (imageFiles.length > 0) {
+        const newFrameUrls = await uploadFramesWithSemaphore(
+          imageFiles,
+          loadingToast,
+        );
+        frameUrls = [...frameUrls, ...newFrameUrls];
+      }
 
-      // Semaphore-based upload queue
-      const uploadFile = async (file: File, fileName: string) => {
-        // Wait until we have capacity
-        while (activeUploads >= concurrencyLimit) {
-          await new Promise((resolve) => setTimeout(resolve, 10));
+      let logoUrl: string | undefined = initialDraft?.logoUrl;
+      if (tier === "B" && logoFile) {
+        if (loadingToast) {
+          toast.loading("Uploading logo...", { id: loadingToast });
         }
-
-        activeUploads++;
-        try {
-          const url = await uploadToCloudinary(file, `orders/${gemId}/frames`);
-          frameUrlsWithNames.push({ url, name: fileName });
-          completed++;
-          toast.loading(
-            `Uploading frames... ${completed}/${sortedImageFiles.length}`,
-            {
-              id: loadingToast,
-            },
-          );
-        } catch (error) {
-          console.error(`Failed to upload ${fileName}:`, error);
-          throw error;
-        } finally {
-          activeUploads--;
-        }
-      };
-
-      // Start all uploads (they'll self-regulate via the semaphore)
-      await Promise.all(
-        sortedImageFiles.map((file) => uploadFile(file, file.name)),
-      );
-
-      // Sort frame URLs by filename to ensure correct sequence
-      const frameUrls = frameUrlsWithNames
-        .sort((a, b) =>
-          a.name.localeCompare(b.name, undefined, {
-            numeric: true,
-            sensitivity: "base",
-          }),
-        )
-        .map((item) => item.url);
-
-      // Verify all frames were uploaded
-      if (frameUrls.length !== sortedImageFiles.length) {
-        throw new Error(
-          `Upload incomplete: ${frameUrls.length}/${sortedImageFiles.length} frames uploaded`,
+        logoUrl = await uploadToCloudinary(
+          logoFile,
+          `orders/${orderNumber}/logo`,
         );
       }
 
-      let logoUrl: string | undefined;
-      if (tier === "B" && logoFile) {
-        toast.loading("Uploading logo...", { id: loadingToast });
-        logoUrl = await uploadToCloudinary(logoFile, `orders/${gemId}/logo`);
+      const shareableLink = `/view/${orderNumber}`;
+
+      if (isEditMode) {
+        // Update existing draft to publish
+        const updates: Partial<Gemstone> = {
+          customerName: customerName.trim(),
+          customerContact: normalizePhoneNumber(phoneNumber),
+          title: title.trim(),
+          tier,
+          logoUrl,
+          frames: frameUrls,
+          shareableLink,
+          status: "completed",
+          updatedAt: now,
+        };
+
+        await updateGemstone(initialDraft!.id, updates);
+      } else {
+        // Create new published order
+        const publishedOrder: Gemstone = {
+          id: orderNumber,
+          orderNumber,
+          customerName: customerName.trim(),
+          customerContact: normalizePhoneNumber(phoneNumber),
+          title: title.trim(),
+          tier,
+          logoUrl,
+          frames: frameUrls,
+          shareableLink,
+          status: "completed",
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        await addGemstone(publishedOrder);
       }
 
-      const shareableLink = `/view/${gemId}`;
-
-      const publishedOrder: Gemstone = {
-        id: gemId,
-        orderNumber,
-        customerName: customerName.trim(),
-        customerContact: normalizePhoneNumber(phoneNumber),
-        title: title.trim(),
-        tier,
-        logoUrl,
-        frames: frameUrls,
-        shareableLink,
-        status: "completed",
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      await addGemstone(publishedOrder);
-
-      toast.dismiss(loadingToast);
-      toast.success("Order created successfully!");
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
+      toast.success(
+        isEditMode
+          ? "Order published successfully!"
+          : "Order created successfully!",
+      );
       setCreatedLink(shareableLink);
     } catch (error) {
-      toast.dismiss(loadingToast);
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
       toast.error("Upload failed. Please try again.");
       console.error(error);
     } finally {
@@ -363,6 +500,7 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
     setTier("A");
     setImageFiles([]);
     setLogoFile(null);
+    setClearExistingFrames(false);
     onComplete();
   };
 
@@ -432,30 +570,59 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
   return (
     <div className="max-w-3xl space-y-8">
       <header className="pb-6 border-b border-gray-light/50">
-        <h1 className="font-serif text-4xl text-charcoal mb-1 tracking-tight">
-          Add New Order
-        </h1>
+        <div className="flex items-center gap-4 mb-3">
+          {isEditMode && (
+            <button
+              onClick={onComplete}
+              className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-cream text-gray-warm hover:text-charcoal transition-all"
+              title="Back to orders"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <path d="M15 9H3M3 9L9 3M3 9L9 15" />
+              </svg>
+            </button>
+          )}
+          <h1 className="font-serif text-4xl text-charcoal tracking-tight">
+            {isEditMode ? "Edit Order" : "Add New Order"}
+          </h1>
+        </div>
         <p className="text-gray-warm text-sm">
-          Save as draft first, then upload frames and submit when ready.
+          {isEditMode
+            ? "Update order details and frames, then save or publish."
+            : "Save as draft first, then upload frames and submit when ready."}
         </p>
       </header>
 
       <section className="bg-white rounded-xl border border-gray-light/50 p-6">
         <label className="block text-xs font-medium text-gray-warm uppercase tracking-wider mb-1">
-          Order Number (Editable)
+          Order Number {isEditMode && "(Immutable)"}
         </label>
-        <div className="flex items-center gap-3 h-11 px-4 bg-pearl border border-gray-light rounded-lg focus-within:border-gold/50 focus-within:ring-1 focus-within:ring-gold/30 transition-all">
-          <input
-            type="text"
-            value={orderNumber}
-            onChange={(e) => setOrderNumber(e.target.value)}
-            className="w-full bg-transparent border-none p-0 font-mono font-semibold text-charcoal tracking-widest focus:ring-0"
-            placeholder="e.g. ORD-00001"
-          />
-          <span className="ml-auto text-xs text-gray-warm bg-cream px-2 py-0.5 rounded whitespace-nowrap">
-            Auto-incremented
-          </span>
-        </div>
+        {isEditMode ? (
+          <div className="flex items-center gap-3 h-11 px-4 bg-gray-light/20 border border-gray-light rounded-lg">
+            <span className="w-full font-mono font-semibold text-charcoal tracking-widest">
+              {orderNumber}
+            </span>
+            <span className="ml-auto text-xs text-gray-warm bg-cream px-2 py-0.5 rounded whitespace-nowrap">
+              Read-only
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 h-11 px-4 bg-gray-light/20 border border-gray-light rounded-lg">
+            <span className="w-full font-mono font-semibold text-charcoal tracking-widest">
+              {orderNumber}
+            </span>
+            <span className="ml-auto text-xs text-gray-warm bg-cream px-2 py-0.5 rounded whitespace-nowrap">
+              Auto-generated
+            </span>
+          </div>
+        )}
       </section>
 
       <section className="bg-white rounded-xl border border-gray-light/50 p-6">
@@ -551,6 +718,35 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
           )}
         </div>
 
+        {isEditMode && existingFrameCount > 0 && (
+          <div
+            className={`mb-4 p-4 border rounded-lg transition-all ${
+              clearExistingFrames
+                ? "bg-ruby/5 border-ruby/20"
+                : "bg-emerald/5 border-emerald/20"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-charcoal">
+                <span className="font-medium">{existingFrameCount}</span>{" "}
+                existing {clearExistingFrames && "frames will be "}
+                frames{clearExistingFrames ? " deleted " : " loaded. "}
+                {!clearExistingFrames && "You can add more frames below."}
+              </p>
+              <button
+                onClick={() => setClearExistingFrames(!clearExistingFrames)}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
+                  clearExistingFrames
+                    ? "bg-ruby/20 text-ruby hover:bg-ruby/30"
+                    : "bg-gray-light/30 text-gray-warm hover:bg-gray-light/50"
+                }`}
+              >
+                {clearExistingFrames ? "Keep Frames" : "Clear Frames"}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div
           {...getFrameRootProps()}
           className={`p-10 border-2 border-dashed rounded-xl transition-all cursor-pointer ${
@@ -579,25 +775,59 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
           </div>
         </div>
 
-        {imageFiles.length > 0 && (
+        {(imageFiles.length > 0 || isEditMode) && (
           <div className="mt-4 p-4 bg-cream/30 rounded-lg border border-gray-light/50 flex items-center justify-between">
             <div className="flex gap-6 text-sm">
+              {isEditMode && (
+                <>
+                  <span>
+                    <span className="text-gray-warm">Existing:</span>{" "}
+                    <span
+                      className={`font-semibold ${
+                        clearExistingFrames
+                          ? "text-ruby line-through"
+                          : "text-charcoal"
+                      }`}
+                    >
+                      {existingFrameCount}
+                    </span>
+                  </span>
+                  <span>|</span>
+                </>
+              )}
               <span>
-                <span className="text-gray-warm">Frames:</span>{" "}
+                <span className="text-gray-warm">
+                  {isEditMode ? "New" : "Frames"}:
+                </span>{" "}
                 <span className="font-semibold text-charcoal">
                   {imageFiles.length}
                 </span>
               </span>
+              {isEditMode && (
+                <>
+                  <span>|</span>
+                  <span>
+                    <span className="text-gray-warm">Total:</span>{" "}
+                    <span className="font-semibold text-charcoal">
+                      {clearExistingFrames
+                        ? imageFiles.length
+                        : totalFrameCount}
+                    </span>
+                  </span>
+                </>
+              )}
               <span className={`font-medium ${frameStatusColor}`}>
                 {frameStatusLabel}
               </span>
             </div>
-            <button
-              onClick={() => setImageFiles([])}
-              className="text-xs text-ruby hover:text-ruby/80 transition-colors"
-            >
-              Clear all
-            </button>
+            {imageFiles.length > 0 && (
+              <button
+                onClick={() => setImageFiles([])}
+                className="text-xs text-ruby hover:text-ruby/80 transition-colors"
+              >
+                Clear new frames
+              </button>
+            )}
           </div>
         )}
       </section>
@@ -650,18 +880,31 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
           disabled={isSavingDraft || isSubmitting}
           className="h-12 px-8 bg-white border border-gray-light text-charcoal font-semibold text-sm rounded-xl hover:bg-cream disabled:opacity-60 disabled:cursor-not-allowed transition-all"
         >
-          {isSavingDraft ? "Saving draft..." : "Save as Draft"}
+          {isSavingDraft
+            ? isEditMode
+              ? "Updating..."
+              : "Saving draft..."
+            : isEditMode
+              ? "Save Changes"
+              : "Save as Draft"}
         </button>
         <button
           onClick={handleSubmit}
           disabled={isSubmitting || isSavingDraft}
           className="h-12 px-8 bg-gold text-white font-semibold text-sm rounded-xl hover:bg-gold-dark disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-md"
         >
-          {isSubmitting ? "Uploading..." : "Submit"}
+          {isSubmitting
+            ? isEditMode
+              ? "Publishing..."
+              : "Uploading..."
+            : isEditMode
+              ? "Publish"
+              : "Submit"}
         </button>
         <p className="text-xs text-gray-warm sm:ml-2">
-          Submitting publishes the order, enables copy link, and allows WhatsApp
-          sharing.
+          {isEditMode
+            ? "Publishing completes the order and enables sharing."
+            : "Submitting publishes the order, enables copy link, and allows WhatsApp sharing."}
         </p>
       </div>
     </div>
