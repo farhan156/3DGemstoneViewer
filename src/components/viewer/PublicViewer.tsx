@@ -18,18 +18,41 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const imageCache = useRef<HTMLImageElement[]>([]);
   const animationFrame = useRef<number>();
   const playInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastFrameTimeRef = useRef(0);
+  const frameIntervalRef = useRef(25); // milliseconds between frames - much faster for smooth playback
+  const currentFrameRef = useRef(0); // Track frame without state batching
 
-  // Auto-rotation when playing
+  // Auto-rotation when playing using requestAnimationFrame for smooth animation
   useEffect(() => {
+    let frameId: number | null = null;
+
+    const animate = (currentTime: number) => {
+      if (!isPlaying || !gemstone.frames || gemstone.frames.length === 0)
+        return;
+
+      // Advance frame if enough time has passed
+      if (currentTime - lastFrameTimeRef.current >= frameIntervalRef.current) {
+        currentFrameRef.current =
+          (currentFrameRef.current + 1) % gemstone.frames.length;
+        setCurrentFrame(currentFrameRef.current);
+        lastFrameTimeRef.current = currentTime;
+      }
+
+      // Continue animation loop
+      frameId = requestAnimationFrame(animate);
+    };
+
     if (isPlaying && gemstone.frames && gemstone.frames.length > 0) {
-      playInterval.current = setInterval(() => {
-        setCurrentFrame((prev) => (prev + 1) % gemstone.frames.length);
-      }, 150);
-    } else {
-      if (playInterval.current) clearInterval(playInterval.current);
+      // Sync ref with current state
+      currentFrameRef.current = currentFrame;
+      lastFrameTimeRef.current = performance.now();
+      frameId = requestAnimationFrame(animate);
     }
+
     return () => {
-      if (playInterval.current) clearInterval(playInterval.current);
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
     };
   }, [isPlaying, gemstone.frames]);
 
@@ -73,8 +96,9 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
       animationFrame.current = requestAnimationFrame(() => {
         // Invert the direction for natural rotation (drag right = rotate right)
         const newFrame =
-          (currentFrame - frameDelta + gemstone.frames.length) %
+          (currentFrameRef.current - frameDelta + gemstone.frames.length) %
           gemstone.frames.length;
+        currentFrameRef.current = newFrame;
         setCurrentFrame(newFrame);
         dragStartX.current = e.clientX;
       });
@@ -107,8 +131,9 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
       animationFrame.current = requestAnimationFrame(() => {
         // Invert the direction for natural rotation (swipe right = rotate right)
         const newFrame =
-          (currentFrame - frameDelta + gemstone.frames.length) %
+          (currentFrameRef.current - frameDelta + gemstone.frames.length) %
           gemstone.frames.length;
+        currentFrameRef.current = newFrame;
         setCurrentFrame(newFrame);
         dragStartX.current = e.touches[0].clientX;
       });
@@ -121,14 +146,18 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
 
   const rotateLeft = () => {
     if (!gemstone.frames) return;
-    setCurrentFrame(
-      (prev) => (prev - 1 + gemstone.frames.length) % gemstone.frames.length,
-    );
+    const newFrame =
+      (currentFrameRef.current - 1 + gemstone.frames.length) %
+      gemstone.frames.length;
+    currentFrameRef.current = newFrame;
+    setCurrentFrame(newFrame);
   };
 
   const rotateRight = () => {
     if (!gemstone.frames) return;
-    setCurrentFrame((prev) => (prev + 1) % gemstone.frames.length);
+    const newFrame = (currentFrameRef.current + 1) % gemstone.frames.length;
+    currentFrameRef.current = newFrame;
+    setCurrentFrame(newFrame);
   };
 
   // Preload all images for smooth transitions

@@ -264,21 +264,42 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
         }),
       );
 
-      // Upload all frames and track them with their filenames
+      // Upload frames in parallel with proper concurrency control (30 simultaneous)
       const frameUrlsWithNames: Array<{ url: string; name: string }> = [];
-      for (let i = 0; i < sortedImageFiles.length; i += 1) {
-        const url = await uploadToCloudinary(
-          sortedImageFiles[i],
-          `orders/${gemId}/frames`,
-        );
-        frameUrlsWithNames.push({ url, name: sortedImageFiles[i].name });
-        toast.loading(
-          `Uploading frames... ${i + 1}/${sortedImageFiles.length}`,
-          {
-            id: loadingToast,
-          },
-        );
-      }
+      const concurrencyLimit = 30;
+      let completed = 0;
+      let activeUploads = 0;
+
+      // Semaphore-based upload queue
+      const uploadFile = async (file: File, fileName: string) => {
+        // Wait until we have capacity
+        while (activeUploads >= concurrencyLimit) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+
+        activeUploads++;
+        try {
+          const url = await uploadToCloudinary(file, `orders/${gemId}/frames`);
+          frameUrlsWithNames.push({ url, name: fileName });
+          completed++;
+          toast.loading(
+            `Uploading frames... ${completed}/${sortedImageFiles.length}`,
+            {
+              id: loadingToast,
+            },
+          );
+        } catch (error) {
+          console.error(`Failed to upload ${fileName}:`, error);
+          throw error;
+        } finally {
+          activeUploads--;
+        }
+      };
+
+      // Start all uploads (they'll self-regulate via the semaphore)
+      await Promise.all(
+        sortedImageFiles.map((file) => uploadFile(file, file.name)),
+      );
 
       // Sort frame URLs by filename to ensure correct sequence
       const frameUrls = frameUrlsWithNames
@@ -289,6 +310,13 @@ export default function AddNewOrder({ onComplete }: AddNewOrderProps) {
           }),
         )
         .map((item) => item.url);
+
+      // Verify all frames were uploaded
+      if (frameUrls.length !== sortedImageFiles.length) {
+        throw new Error(
+          `Upload incomplete: ${frameUrls.length}/${sortedImageFiles.length} frames uploaded`,
+        );
+      }
 
       let logoUrl: string | undefined;
       if (tier === "B" && logoFile) {
