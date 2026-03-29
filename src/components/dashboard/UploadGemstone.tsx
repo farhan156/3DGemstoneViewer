@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import toast from "react-hot-toast";
 import { useGemstoneStore } from "@/store/gemstoneStore";
-import { generateGemstoneId, generateCertificateId } from "@/lib/utils";
+import { generateCertificateId, generateUniqueOrderNumber } from "@/lib/utils";
 import type { VisibilitySettings } from "@/types/gemstone";
 
 interface UploadGemstoneProps {
@@ -12,6 +12,9 @@ interface UploadGemstoneProps {
 }
 
 export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
+  const gemstones = useGemstoneStore((state) => state.gemstones);
+  const fetchGemstones = useGemstoneStore((state) => state.fetchGemstones);
+  const [orderNumber, setOrderNumber] = useState("ORD-00001");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [certificateFile, setCertificateFile] = useState<File | null>(null);
   const [gemData, setGemData] = useState({
@@ -47,6 +50,22 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
 
   const addGemstone = useGemstoneStore((state) => state.addGemstone);
   const addCertificate = useGemstoneStore((state) => state.addCertificate);
+
+  // Fetch gemstones on mount and update order number
+  useEffect(() => {
+    const loadGemstones = async () => {
+      await fetchGemstones();
+    };
+    loadGemstones();
+  }, [fetchGemstones]);
+
+  // Update order number when gemstones change
+  useEffect(() => {
+    const newOrderNumber = generateUniqueOrderNumber(
+      gemstones.map((item) => item.orderNumber || ""),
+    );
+    setOrderNumber(newOrderNumber);
+  }, [gemstones]);
 
   // Upload file to Cloudinary
   const uploadToCloudinary = async (
@@ -152,8 +171,6 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
     const loadingToast = toast.loading("Uploading to cloud storage...");
 
     try {
-      const gemId = generateGemstoneId();
-
       // Sort files by filename in ascending order
       const sortedImageFiles = [...imageFiles].sort((a, b) =>
         a.name.localeCompare(b.name, undefined, {
@@ -180,7 +197,7 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
         try {
           const url = await uploadToCloudinary(
             file,
-            `gemstones/${gemId}/frames`,
+            `gemstones/${orderNumber}/frames`,
           );
           frameUrlsWithNames.push({ url, name: fileName });
           completed++;
@@ -221,12 +238,13 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
 
       // Create gemstone with customer data and optional fields
       const newGem: any = {
-        id: gemId,
+        id: orderNumber,
+        orderNumber,
         customerName: customerData.name,
         customerContact: customerData.contact,
         status: "completed" as const,
         frames: frameUrls,
-        shareableLink: `/view/${gemId}`,
+        shareableLink: `/view/${orderNumber}`,
         visibility,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -248,7 +266,7 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
         toast.loading("Uploading certificate...", { id: loadingToast });
         const certUrl = await uploadToCloudinary(
           certificateFile,
-          `gemstones/${gemId}/certificate`,
+          `gemstones/${orderNumber}/certificate`,
         );
         const fileExtension = certificateFile.name
           .split(".")
