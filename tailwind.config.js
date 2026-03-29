@@ -31,9 +31,9 @@ module.exports = {
         cream: '#F5F3EF',
         champagne: '#F4EFE8',
         gold: {
-          DEFAULT: '#D4AF37',
-          soft: '#E8C872',
-          dark: '#B8941F',
+          DEFAULT: '#af1416',
+          soft: '#d63c42',
+          dark: '#7d0f12',
         },
         rose: {
           gold: '#B76E79',
