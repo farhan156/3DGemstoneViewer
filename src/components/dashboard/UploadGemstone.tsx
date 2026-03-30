@@ -234,7 +234,6 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
           `Upload incomplete: ${frameUrls.length}/${sortedImageFiles.length} frames uploaded`,
         );
       }
-    }
 
       // Create gemstone with customer data and optional fields
       const newGem: any = {

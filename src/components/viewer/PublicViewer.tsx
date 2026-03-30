@@ -60,7 +60,7 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
         cancelAnimationFrame(frameId);
       }
     };
-  }, [isPlaying, gemstone.frames]);
+  }, [isPlaying, gemstone.frames, currentFrame]);
 
   // Pause when user drags
   const pauseOnDrag = () => {
