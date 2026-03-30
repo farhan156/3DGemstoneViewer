@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Gemstone } from "@/types/gemstone";
+import { optimizeCloudinaryUrl } from "@/lib/utils";
 
 interface PublicViewerProps {
   gemstone: Gemstone;
@@ -195,10 +196,11 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     const loadImages = async () => {
       // PRIORITY: Load first frame immediately
       try {
+        const firstFrameUrl = optimizeCloudinaryUrl(gemstone.frames[0]);
         const firstImg = await new Promise<HTMLImageElement>(
           (resolve, reject) => {
             const img = new Image();
-            img.src = gemstone.frames[0];
+            img.src = firstFrameUrl;
             img.onload = () => resolve(img);
             img.onerror = reject;
           },
@@ -217,7 +219,7 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
           return new Promise<{ img: HTMLImageElement; index: number }>(
             (resolve) => {
               const img = new Image();
-              img.src = src;
+              img.src = optimizeCloudinaryUrl(src);
               img.onload = () => resolve({ img, index: index + 1 });
               img.onerror = () => resolve({ img, index: index + 1 }); // Don't fail on individual frames
             },
@@ -520,7 +522,7 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
                     </div>
                   )}
                   <img
-                    src={gemstone.frames[currentFrame]}
+                    src={optimizeCloudinaryUrl(gemstone.frames[currentFrame])}
                     alt={`${gemstone.name || "Gemstone"} - Frame ${currentFrame + 1}`}
                     className="w-full h-full object-contain select-none"
                     style={{

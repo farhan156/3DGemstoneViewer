@@ -1,5 +1,7 @@
 "use client";
 
+export const revalidate = 0;
+
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
