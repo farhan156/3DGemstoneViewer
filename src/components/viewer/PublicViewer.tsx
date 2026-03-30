@@ -274,23 +274,13 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
       {/* Header */}
       <header
         className="fixed top-0 left-0 right-0 z-50 px-6 py-4 md:px-8 md:py-5"
-        style={
-          HEADER_STYLE === "image"
-            ? {
-                backgroundImage: "url('/Header.png')",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
-                boxShadow: "0 12px 24px rgba(74, 4, 4, 0.2)",
-              }
-            : {
-                backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><defs><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="6" seed="1" result="noise" /><feDisplacementMap in="SourceGraphic" in2="noise" scale="3" /></filter></defs><rect width="200" height="200" fill="%23000000" filter="url(%23noise)" opacity="0.25"/></svg>'), linear-gradient(90deg, #06050a 0%, #34262d 12%, #83070c 28%, #e73e3d 52%, #f16761 76%, #811621 100%)`,
-                backgroundBlendMode: "overlay",
-                backgroundSize: "100% 100%, 100% 100%",
-                backgroundAttachment: "fixed",
-                boxShadow: "0 12px 24px rgba(74, 4, 4, 0.2)",
-              }
-        }
+        style={{
+          backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><defs><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="6" seed="1" result="noise" /><feDisplacementMap in="SourceGraphic" in2="noise" scale="3" /></filter></defs><rect width="200" height="200" fill="%23000000" filter="url(%23noise)" opacity="0.25"/></svg>'), linear-gradient(90deg, #06050a 0%, #34262d 12%, #83070c 28%, #e73e3d 52%, #f16761 76%, #811621 100%)`,
+          backgroundBlendMode: "overlay",
+          backgroundSize: "100% 100%, 100% 100%",
+          backgroundAttachment: "fixed",
+          boxShadow: "0 12px 24px rgba(74, 4, 4, 0.2)",
+        }}
       >
         <style>{`
           @font-face {
