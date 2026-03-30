@@ -1,10 +1,12 @@
-'use client';
+"use client";
 
-import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import PublicViewer from '@/components/viewer/PublicViewer';
-import { Gemstone } from '@/types/gemstone';
-import { useGemstoneStore } from '@/store/gemstoneStore';
+export const dynamic = "force-dynamic";
+
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import PublicViewer from "@/components/viewer/PublicViewer";
+import { Gemstone } from "@/types/gemstone";
+import { useGemstoneStore } from "@/store/gemstoneStore";
 
 export default function ViewerPage() {
   const params = useParams();
@@ -18,7 +20,7 @@ export default function ViewerPage() {
         const data = await getGemstoneById(params.id as string);
         setGemstone(data);
       } catch (error) {
-        console.error('Error fetching gemstone:', error);
+        console.error("Error fetching gemstone:", error);
       } finally {
         setLoading(false);
       }
@@ -42,19 +44,28 @@ export default function ViewerPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-pearl">
         <div className="text-center">
-          <h1 className="text-4xl font-serif text-charcoal mb-4">Gemstone Not Found</h1>
-          <p className="text-gray-warm">The requested gemstone could not be found.</p>
+          <h1 className="text-4xl font-serif text-charcoal mb-4">
+            Gemstone Not Found
+          </h1>
+          <p className="text-gray-warm">
+            The requested gemstone could not be found.
+          </p>
         </div>
       </div>
     );
   }
 
-  if (gemstone.status !== 'completed') {
+  if (gemstone.status !== "completed") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-pearl">
         <div className="text-center max-w-md px-6">
-          <h1 className="text-4xl font-serif text-charcoal mb-4">Link Not Available Yet</h1>
-          <p className="text-gray-warm">This order is still in draft or processing and cannot be viewed publicly.</p>
+          <h1 className="text-4xl font-serif text-charcoal mb-4">
+            Link Not Available Yet
+          </h1>
+          <p className="text-gray-warm">
+            This order is still in draft or processing and cannot be viewed
+            publicly.
+          </p>
         </div>
       </div>
     );
