@@ -25,6 +25,7 @@ export interface Gemstone {
   clarity?: string;
   colorGrade?: string;
   origin?: string;
+  description?: string;
   customerName: string;
   customerContact: string;
   customerEmail?: string;

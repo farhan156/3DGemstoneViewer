@@ -43,6 +43,13 @@ export default function AddNewOrder({
     initialDraft?.customerContact || "",
   );
   const [title, setTitle] = useState(initialDraft?.title || "");
+  const [caratWeight, setCaratWeight] = useState(
+    initialDraft?.weight?.toString() || "",
+  );
+  const [origin, setOrigin] = useState(initialDraft?.origin || "");
+  const [description, setDescription] = useState(
+    initialDraft?.description || "",
+  );
   const [tier, setTier] = useState<"A" | "B">(initialDraft?.tier || "A");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -201,88 +208,6 @@ export default function AddNewOrder({
     window.open(`https://wa.me/${cleaned}?text=${message}`, "_blank");
   };
 
-  /**
-   * Upload frames with semaphore-based concurrency control
-   * Returns sorted frame URLs in the order they were uploaded
-   */
-  const uploadFramesWithSemaphore = async (
-    filesToUpload: File[],
-    toastId?: string,
-  ): Promise<string[]> => {
-    if (filesToUpload.length === 0) {
-      return [];
-    }
-
-    // Sort files by filename in ascending order
-    const sortedImageFiles = [...filesToUpload].sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, {
-        numeric: true,
-        sensitivity: "base",
-      }),
-    );
-
-    // Upload frames in parallel with proper concurrency control (30 simultaneous)
-    const frameUrlsWithNames: Array<{ url: string; name: string }> = [];
-    const concurrencyLimit = 30;
-    let completed = 0;
-    let activeUploads = 0;
-
-    // Semaphore-based upload queue
-    const uploadFile = async (file: File, fileName: string) => {
-      // Wait until we have capacity
-      while (activeUploads >= concurrencyLimit) {
-        await new Promise((resolve) => setTimeout(resolve, 10));
-      }
-
-      activeUploads++;
-      try {
-        const url = await uploadToCloudinary(
-          file,
-          `orders/${orderNumber}/frames`,
-        );
-        frameUrlsWithNames.push({ url, name: fileName });
-        completed++;
-        if (toastId) {
-          toast.loading(
-            `Uploading frames... ${completed}/${sortedImageFiles.length}`,
-            {
-              id: toastId,
-            },
-          );
-        }
-      } catch (error) {
-        console.error(`Failed to upload ${fileName}:`, error);
-        throw error;
-      } finally {
-        activeUploads--;
-      }
-    };
-
-    // Start all uploads (they'll self-regulate via the semaphore)
-    await Promise.all(
-      sortedImageFiles.map((file) => uploadFile(file, file.name)),
-    );
-
-    // Sort frame URLs by filename to ensure correct sequence
-    const newFrameUrls = frameUrlsWithNames
-      .sort((a, b) =>
-        a.name.localeCompare(b.name, undefined, {
-          numeric: true,
-          sensitivity: "base",
-        }),
-      )
-      .map((item) => item.url);
-
-    // Verify all frames were uploaded
-    if (newFrameUrls.length !== sortedImageFiles.length) {
-      throw new Error(
-        `Upload incomplete: ${newFrameUrls.length}/${sortedImageFiles.length} frames uploaded`,
-      );
-    }
-
-    return newFrameUrls;
-  };
-
   const handleSaveDraft = async () => {
     if (!customerName.trim()) {
       toast.error("Customer name is required");
@@ -307,20 +232,6 @@ export default function AddNewOrder({
     try {
       const now = new Date().toISOString();
 
-      // Upload any new frames
-      let frameUrls = clearExistingFrames
-        ? []
-        : (initialDraft?.frames || []);
-
-      if (imageFiles.length > 0) {
-        const newFrameUrls = await uploadFramesWithSemaphore(
-          imageFiles,
-          loadingToast,
-        );
-        frameUrls = [...frameUrls, ...newFrameUrls];
-        setImageFiles([]);
-      }
-
       if (isEditMode) {
         // Update existing draft
         const updates: Partial<Gemstone> = {
@@ -328,7 +239,9 @@ export default function AddNewOrder({
           customerContact: normalizePhoneNumber(phoneNumber),
           tier,
           title: title.trim() || undefined,
-          frames: frameUrls,
+          weight: caratWeight ? parseFloat(caratWeight) : undefined,
+          origin: origin.trim() || undefined,
+          description: description.trim() || undefined,
           updatedAt: now,
         };
 
@@ -344,8 +257,11 @@ export default function AddNewOrder({
           customerContact: normalizePhoneNumber(phoneNumber),
           tier,
           title: title.trim() || undefined,
+          weight: caratWeight ? parseFloat(caratWeight) : undefined,
+          origin: origin.trim() || undefined,
+          description: description.trim() || undefined,
           status: "draft",
-          frames: frameUrls,
+          frames: [],
           createdAt: now,
           updatedAt: now,
         };
@@ -411,17 +327,79 @@ export default function AddNewOrder({
     try {
       const now = new Date().toISOString();
 
-      let frameUrls = clearExistingFrames
-        ? []
-        : (initialDraft?.frames || []);
+      let frameUrls = [...existingFrames];
 
-      // Upload new frames if any
+      // Only upload new frames if any exist
       if (imageFiles.length > 0) {
-        const newFrameUrls = await uploadFramesWithSemaphore(
-          imageFiles,
-          loadingToast,
+        // Sort files by filename in ascending order
+        const sortedImageFiles = [...imageFiles].sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, {
+            numeric: true,
+            sensitivity: "base",
+          }),
         );
-        frameUrls = [...frameUrls, ...newFrameUrls];
+
+        // Upload frames in parallel with proper concurrency control (30 simultaneous)
+        const frameUrlsWithNames: Array<{ url: string; name: string }> = [];
+        const concurrencyLimit = 30;
+        let completed = 0;
+        let activeUploads = 0;
+
+        // Semaphore-based upload queue
+        const uploadFile = async (file: File, fileName: string) => {
+          // Wait until we have capacity
+          while (activeUploads >= concurrencyLimit) {
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          }
+
+          activeUploads++;
+          try {
+            const url = await uploadToCloudinary(
+              file,
+              `orders/${orderNumber}/frames`,
+            );
+            frameUrlsWithNames.push({ url, name: fileName });
+            completed++;
+            if (loadingToast) {
+              toast.loading(
+                `Uploading frames... ${completed}/${sortedImageFiles.length}`,
+                {
+                  id: loadingToast,
+                },
+              );
+            }
+          } catch (error) {
+            console.error(`Failed to upload ${fileName}:`, error);
+            throw error;
+          } finally {
+            activeUploads--;
+          }
+        };
+
+        // Start all uploads (they'll self-regulate via the semaphore)
+        await Promise.all(
+          sortedImageFiles.map((file) => uploadFile(file, file.name)),
+        );
+
+        // Sort frame URLs by filename to ensure correct sequence
+        const newFrameUrls = frameUrlsWithNames
+          .sort((a, b) =>
+            a.name.localeCompare(b.name, undefined, {
+              numeric: true,
+              sensitivity: "base",
+            }),
+          )
+          .map((item) => item.url);
+
+        // Verify all frames were uploaded
+        if (newFrameUrls.length !== sortedImageFiles.length) {
+          throw new Error(
+            `Upload incomplete: ${newFrameUrls.length}/${sortedImageFiles.length} frames uploaded`,
+          );
+        }
+
+        // Merge with existing frames
+        frameUrls = [...existingFrames, ...newFrameUrls];
       }
 
       let logoUrl: string | undefined = initialDraft?.logoUrl;
@@ -444,6 +422,9 @@ export default function AddNewOrder({
           customerContact: normalizePhoneNumber(phoneNumber),
           title: title.trim(),
           tier,
+          weight: caratWeight ? parseFloat(caratWeight) : undefined,
+          origin: origin.trim() || undefined,
+          description: description.trim() || undefined,
           logoUrl,
           frames: frameUrls,
           shareableLink,
@@ -461,6 +442,9 @@ export default function AddNewOrder({
           customerContact: normalizePhoneNumber(phoneNumber),
           title: title.trim(),
           tier,
+          weight: caratWeight ? parseFloat(caratWeight) : undefined,
+          origin: origin.trim() || undefined,
+          description: description.trim() || undefined,
           logoUrl,
           frames: frameUrls,
           shareableLink,
@@ -705,6 +689,57 @@ export default function AddNewOrder({
               </p>
             </label>
           ))}
+        </div>
+      </section>
+
+      <section className="bg-white rounded-xl border border-gray-light/50 p-6">
+        <h2 className="font-serif text-xl text-charcoal mb-5">
+          Gemstone Details
+        </h2>
+        <p className="text-xs text-gray-warm mb-5">
+          Optional fields - these will be displayed in the viewer
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-2">
+              Carat Weight
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                step="0.01"
+                value={caratWeight}
+                onChange={(e) => setCaratWeight(e.target.value)}
+                placeholder="e.g., 3.5"
+                className="flex-1 h-11 px-4 bg-pearl border border-gray-light text-charcoal placeholder-gray-warm rounded-lg focus:outline-none focus:border-gold transition-all"
+              />
+              <span className="text-sm text-gray-warm font-medium">ct</span>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-2">
+              Origin
+            </label>
+            <input
+              type="text"
+              value={origin}
+              onChange={(e) => setOrigin(e.target.value)}
+              placeholder="e.g., Burma, Sri Lanka"
+              className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal placeholder-gray-warm rounded-lg focus:outline-none focus:border-gold transition-all"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-charcoal mb-2">
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add details about the gemstone, its characteristics, etc."
+              rows={4}
+              className="w-full px-4 py-3 bg-pearl border border-gray-light text-charcoal placeholder-gray-warm rounded-lg focus:outline-none focus:border-gold transition-all resize-none"
+            />
+          </div>
         </div>
       </section>
 
