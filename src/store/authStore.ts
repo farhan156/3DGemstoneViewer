@@ -114,7 +114,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       onAuthStateChanged(auth, async (user) => {
         set({ user, isAuthLoading: false });
 
-        if (user) {
+        if (user && db) {
           await setDoc(
             doc(db, 'users', user.uid),
             {
@@ -146,6 +146,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       return;
     }
 
+    if (!auth) throw new Error('Firebase auth not initialized');
     await signInWithEmailAndPassword(auth, normalizedIdentifier, password);
   },
 
@@ -160,6 +161,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       return;
     }
 
+    if (!auth) throw new Error('Firebase auth not initialized');
     await signOut(auth);
   },
 
@@ -180,7 +182,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       return;
     }
 
-    const currentUser = auth.currentUser;
+    if (!auth) throw new Error('Firebase auth not initialized');
+    const currentUser = auth!.currentUser;
     if (!currentUser) throw new Error('No active user session');
 
     if (name.trim() && name.trim() !== (currentUser.displayName || '')) {
@@ -195,6 +198,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       await updatePassword(currentUser, password.trim());
     }
 
+    if (!db) throw new Error('Firebase db not initialized');
     await setDoc(
       doc(db, 'users', currentUser.uid),
       {
@@ -206,12 +210,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       { merge: true }
     );
 
-    set({ user: auth.currentUser });
+    set({ user: auth!.currentUser });
   },
 
   fetchManagedUsers: async () => {
     set({ isUsersLoading: true });
     try {
+      if (!db) throw new Error('Firebase db not initialized');
       const snap = await getDocs(collection(db, 'users'));
       const users: ManagedUser[] = [];
       snap.forEach((item) => {
@@ -238,6 +243,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       createdAt: new Date().toISOString(),
     };
 
+    if (!db) throw new Error('Firebase db not initialized');
     const ref = await addDoc(collection(db, 'users'), newUser);
 
     set((state) => ({
@@ -246,6 +252,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   removeManagedUser: async (id) => {
+    if (!db) throw new Error('Firebase db not initialized');
     await deleteDoc(doc(db, 'users', id));
     set((state) => ({ managedUsers: state.managedUsers.filter((u) => u.id !== id) }));
   },
