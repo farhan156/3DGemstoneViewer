@@ -1,6 +1,6 @@
 "use client";
 
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
