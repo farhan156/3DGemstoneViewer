@@ -1,7 +1,5 @@
 "use client";
 
-export const revalidate = 0;
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";

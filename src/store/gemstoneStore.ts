@@ -30,6 +30,7 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
   fetchGemstones: async () => {
     set({ isLoading: true });
     try {
+      if (!db) throw new Error('Firebase db not initialized');
       const querySnapshot = await getDocs(collection(db, 'gemstones'));
       const gemstones: Gemstone[] = [];
       querySnapshot.forEach((doc) => {
@@ -45,6 +46,7 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
 
   addGemstone: async (gemstone) => {
     try {
+      if (!db) throw new Error('Firebase db not initialized');
       // Clean undefined values because Firestore does not support it
       const cleanGemstone = { ...gemstone };
       Object.keys(cleanGemstone).forEach((key) => {
@@ -66,6 +68,7 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
   },
 
   updateGemstone: async (id, data) => {
+    if (!db) throw new Error('Firebase db not initialized');
     const gemstone = get().gemstones.find((g) => g.id === id);
     if (!gemstone) return;
 
@@ -98,6 +101,7 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
 
   deleteGemstone: async (id) => {
     try {
+      if (!db) throw new Error('Firebase db not initialized');
       await deleteDoc(doc(db, 'gemstones', id));
       set((state) => ({
         gemstones: state.gemstones.filter((gem) => gem.id !== id),
@@ -111,6 +115,7 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
 
   getGemstoneById: async (id: string) => {
     try {
+      if (!db) throw new Error('Firebase db not initialized');
       const docSnap = await getDoc(doc(db, 'gemstones', id));
       if (docSnap.exists()) {
         return { ...docSnap.data(), id: docSnap.id } as Gemstone;
