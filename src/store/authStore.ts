@@ -110,22 +110,24 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }
     }
 
-    onAuthStateChanged(auth, async (user) => {
-      set({ user, isAuthLoading: false });
+    if (auth) {
+      onAuthStateChanged(auth, async (user) => {
+        set({ user, isAuthLoading: false });
 
-      if (user) {
-        await setDoc(
-          doc(db, 'users', user.uid),
-          {
-            name: user.displayName || '',
-            email: user.email || '',
-            role: 'admin',
-            createdAt: new Date().toISOString(),
-          },
-          { merge: true }
+        if (user) {
+          await setDoc(
+            doc(db, 'users', user.uid),
+            {
+              name: user.displayName || '',
+              email: user.email || '',
+              role: 'admin',
+              createdAt: new Date().toISOString(),
+            },
+            { merge: true }
         );
       }
-    });
+      });
+    }
   },
 
   login: async (identifier, password) => {
