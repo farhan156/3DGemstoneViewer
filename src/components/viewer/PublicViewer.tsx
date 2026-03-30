@@ -188,26 +188,50 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     setCurrentFrame(newFrame);
   };
 
-  // Preload all images for smooth transitions
+  // Preload first image immediately, then preload rest in background
   useEffect(() => {
     if (!gemstone.frames || gemstone.frames.length === 0) return;
 
     const loadImages = async () => {
-      const promises = gemstone.frames.map((src) => {
-        return new Promise<HTMLImageElement>((resolve, reject) => {
-          const img = new Image();
-          img.src = src;
-          img.onload = () => resolve(img);
-          img.onerror = reject;
-        });
-      });
-
+      // PRIORITY: Load first frame immediately
       try {
-        imageCache.current = await Promise.all(promises);
-        setImagesLoaded(true);
+        const firstImg = await new Promise<HTMLImageElement>(
+          (resolve, reject) => {
+            const img = new Image();
+            img.src = gemstone.frames[0];
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+          },
+        );
+
+        imageCache.current[0] = firstImg;
+        setImagesLoaded(true); // Mark ready immediately after first frame
       } catch (error) {
-        console.error("Error preloading images:", error);
-        setImagesLoaded(true); // Still show images even if some fail
+        console.error("Error loading first frame:", error);
+        setImagesLoaded(true); // Still show even if first frame fails
+      }
+
+      // BACKGROUND: Load remaining frames without blocking
+      if (gemstone.frames.length > 1) {
+        const remainingPromises = gemstone.frames.slice(1).map((src, index) => {
+          return new Promise<{ img: HTMLImageElement; index: number }>(
+            (resolve) => {
+              const img = new Image();
+              img.src = src;
+              img.onload = () => resolve({ img, index: index + 1 });
+              img.onerror = () => resolve({ img, index: index + 1 }); // Don't fail on individual frames
+            },
+          );
+        });
+
+        try {
+          const loadedImages = await Promise.all(remainingPromises);
+          loadedImages.forEach(({ img, index }) => {
+            imageCache.current[index] = img;
+          });
+        } catch (error) {
+          console.warn("Some frames failed to preload:", error);
+        }
       }
     };
 
