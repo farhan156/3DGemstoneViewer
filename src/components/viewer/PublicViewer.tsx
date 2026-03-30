@@ -7,6 +7,9 @@ interface PublicViewerProps {
   gemstone: Gemstone;
 }
 
+// Toggle header style: "image" or "gradient"
+const HEADER_STYLE = "image";
+
 export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -232,19 +235,84 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
+      <style>{`
+        /* Ultra-modern smooth scrollbar */
+        ::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: #af1416;
+          border-radius: 4px;
+          box-shadow: 0 0 6px rgba(175, 20, 22, 0.3);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background: #d63c42;
+          box-shadow: 0 0 12px rgba(175, 20, 22, 0.6);
+          width: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:active {
+          background: #7d0f12;
+          box-shadow: 0 0 16px rgba(175, 20, 22, 0.8);
+        }
+        
+        /* Firefox scrollbar */
+        * {
+          scrollbar-color: #af1416 transparent;
+          scrollbar-width: thin;
+        }
+      `}</style>
       {/* Header */}
       <header
-        className="fixed top-0 left-0 right-0 z-50 p-6 backdrop-blur-sm bg-cover bg-center flex items-center justify-center"
-        style={{
-          backgroundImage: "url(/Header.png)",
-          boxShadow: "0 14px 29px rgba(175, 20, 22, 0.22)",
-        }}
+        className="fixed top-0 left-0 right-0 z-50 p-6 flex items-center justify-center"
+        style={
+          HEADER_STYLE === "image"
+            ? {
+                backgroundImage: "url('/Header.png')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+                boxShadow: "0 12px 24px rgba(74, 4, 4, 0.2)",
+              }
+            : {
+                background: `
+                  url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><defs><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="6" seed="1" result="noise" /><feDisplacementMap in="SourceGraphic" in2="noise" scale="3" /></filter></defs><rect width="200" height="200" fill="%23000000" filter="url(%23noise)" opacity="0.25"/></svg>'),
+                  linear-gradient(90deg, %2306050a 0%%, %2334262d 12%%, %2383070c 28%%, %23e73e3d 52%%, %23f16761 76%%, %23811621 100%%)
+                `,
+                backgroundBlendMode: "overlay",
+                backgroundSize: "100% 100%, 100% 100%",
+                boxShadow: "0 12px 24px rgba(74, 4, 4, 0.2)",
+              }
+        }
       >
-        <img
-          src="/TFS-text.png"
-          alt="The Facet Studio"
-          className="h-8 object-contain"
-        />
+        <style>{`
+          @font-face {
+            font-family: 'Kind Avenue';
+            src: url('/fonts/Kind-Avenue.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+          }
+        `}</style>
+        <span
+          style={{
+            fontFamily: "'Kind Avenue', sans-serif",
+            fontSize: "36px",
+            fontWeight: "400",
+            color: "white",
+            letterSpacing: "-1px",
+            textShadow: "0 2px 4px rgba(0, 0, 0, 0.3)",
+          }}
+        >
+          The Facet Studio
+        </span>
       </header>
 
       {/* Main Content */}
@@ -360,21 +428,14 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
 
           {/* Floating Info Bar for Tier A */}
           {gemstone.tier === "A" && gemstone.title && (
-            <div className="mt-6 w-full max-w-3xl mx-auto">
-              <div
-                className="bg-white px-6 md:px-8 py-4 rounded-lg border border-gold"
-                style={{
-                  boxShadow: "0 12px 24px rgba(175, 20, 22, 0.12)",
-                }}
-              >
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                  <h2 className="text-lg md:text-xl font-serif text-charcoal tracking-tight">
-                    {gemstone.title}
-                  </h2>
-                  <span className="text-sm text-charcoal font-mono tracking-wide">
-                    Gemstone #{gemstone.id}
-                  </span>
-                </div>
+            <div className="mt-6 w-full max-w-3xl mx-auto px-6 md:px-8">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                <h2 className="text-lg md:text-xl font-serif text-charcoal tracking-tight">
+                  {gemstone.title}
+                </h2>
+                <span className="text-sm text-charcoal font-mono tracking-wide">
+                  Gemstone #{gemstone.id}
+                </span>
               </div>
             </div>
           )}
