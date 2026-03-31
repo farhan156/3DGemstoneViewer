@@ -28,6 +28,7 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const frameIntervalRef = useRef(25); // milliseconds between frames - much faster for smooth playback
   const currentFrameRef = useRef(0); // Track frame without state batching
   const dragOccurredRef = useRef(false); // Track if actual drag occurred
+  const dragThresholdRef = useRef(18); // Min 18px movement to register as drag (not a tap)
 
   // Auto-rotation when playing using requestAnimationFrame for smooth animation
   useEffect(() => {
@@ -92,18 +93,24 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     if (!isDragging || !gemstone.frames) return;
 
     const delta = e.clientX - dragStartX.current;
-    const sensitivity = 5;
-    const frameDelta = Math.floor(delta / sensitivity);
+    const threshold = dragThresholdRef.current;
 
-    if (frameDelta !== 0) {
-      dragOccurredRef.current = true;
-      pauseOnDrag();
+    // Only treat as drag if movement exceeds threshold
+    const absoluteDelta = Math.abs(delta);
+    if (absoluteDelta >= threshold && !dragOccurredRef.current) {
+      dragOccurredRef.current = true; // Mark that a real drag started
+      setIsPlaying(false); // Pause immediately when drag starts
+    }
+
+    // Only update rotation if drag has occurred
+    if (dragOccurredRef.current) {
       if (animationFrame.current) {
         cancelAnimationFrame(animationFrame.current);
       }
 
       animationFrame.current = requestAnimationFrame(() => {
         // Invert the direction for natural rotation (drag right = rotate right)
+        const frameDelta = Math.floor(delta / 3); // sensitivity: 3 pixels per frame (desktop)
         const newFrame =
           (currentFrameRef.current - frameDelta + gemstone.frames.length) %
           gemstone.frames.length;
@@ -114,12 +121,9 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e: React.MouseEvent) => {
     setIsDragging(false);
-    // If no drag occurred, toggle play/pause on click
-    if (!dragOccurredRef.current) {
-      setIsPlaying((p) => !p);
-    }
+    // OnClick handler will take care of pause/play toggle
   };
 
   const handleMouseLeave = () => {
@@ -138,18 +142,24 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     if (!isDragging || !gemstone.frames) return;
 
     const delta = e.touches[0].clientX - dragStartX.current;
-    const sensitivity = 4; // More sensitive for mobile
-    const frameDelta = Math.floor(delta / sensitivity);
+    const threshold = dragThresholdRef.current;
 
-    if (frameDelta !== 0) {
-      dragOccurredRef.current = true;
-      pauseOnDrag();
+    // Only treat as drag if movement exceeds threshold
+    const absoluteDelta = Math.abs(delta);
+    if (absoluteDelta >= threshold && !dragOccurredRef.current) {
+      dragOccurredRef.current = true; // Mark that a real drag started
+      setIsPlaying(false); // Pause immediately when drag starts
+    }
+
+    // Only update rotation if drag has occurred
+    if (dragOccurredRef.current) {
       if (animationFrame.current) {
         cancelAnimationFrame(animationFrame.current);
       }
 
       animationFrame.current = requestAnimationFrame(() => {
         // Invert the direction for natural rotation (swipe right = rotate right)
+        const frameDelta = Math.floor(delta / 2); // sensitivity: 2 pixels per frame (very responsive)
         const newFrame =
           (currentFrameRef.current - frameDelta + gemstone.frames.length) %
           gemstone.frames.length;
@@ -160,17 +170,19 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     }
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
     setIsDragging(false);
-    // If no drag occurred, toggle play/pause on tap
-    if (!dragOccurredRef.current) {
-      setIsPlaying((p) => !p);
-    }
+    // OnClick handler will take care of pause/play toggle
   };
 
   const handleTouchCancel = () => {
     setIsDragging(false);
     // Don't toggle on cancel, just stop dragging
+  };
+
+  const handleViewerClick = () => {
+    // Simple onClick handler - only fires if no drag occurred
+    setIsPlaying((p) => !p);
   };
 
   const rotateLeft = () => {
@@ -502,6 +514,7 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
           <div className="relative w-full max-w-3xl mx-auto aspect-square">
             <div
               ref={viewerRef}
+              onClick={handleViewerClick}
               className={`w-full h-full bg-white flex items-center justify-center overflow-hidden touch-none ${
                 isDragging ? "cursor-grabbing" : "cursor-grab"
               }`}
