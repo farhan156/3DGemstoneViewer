@@ -434,109 +434,118 @@ export default function EditOrder({ order, onClose }: EditOrderProps) {
           </div>
 
           {tier === "A" && (
-            <div>
-              <label className="block text-sm font-medium text-charcoal mb-2">
-                Logo{" "}
-                {!order.logoUrl && !logoFile && !isDraft && (
-                  <span className="text-ruby">*</span>
-                )}
-              </label>
-              <div
-                {...getLogoRootProps()}
-                className={`p-5 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
-                  isLogoDragActive
-                    ? "border-gold bg-gold/5"
-                    : "border-gray-light hover:border-gold/40"
-                }`}
-              >
-                <input {...getLogoInputProps()} />
-                {logoFile ? (
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={URL.createObjectURL(logoFile)}
-                      alt="New logo"
-                      className="w-12 h-12 object-contain rounded-lg border border-gray-light bg-pearl p-1"
-                    />
-                    <span className="text-sm text-charcoal">
-                      {logoFile.name}
-                    </span>
-                  </div>
-                ) : order.logoUrl ? (
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={order.logoUrl}
-                      alt="Current logo"
-                      className="w-12 h-12 object-contain rounded-lg border border-gray-light bg-pearl p-1"
-                    />
-                    <span className="text-sm text-gray-warm">
-                      Current logo - click to replace
-                    </span>
-                  </div>
-                ) : (
-                  <p className="text-sm text-center text-gray-warm">
-                    Drop or click to upload logo
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-charcoal mb-2">
-                Certificate (Optional)
-              </label>
-              <div className="border-2 border-dashed rounded-xl transition-all cursor-pointer p-5 border-gray-light hover:border-gold/40">
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={(e) => setCertificateFile(e.target.files?.[0] || null)}
-                  className="hidden"
-                  id="certificate-input"
-                />
-                <label htmlFor="certificate-input" className="cursor-pointer block">
-                  {certificateFile ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-charcoal mb-2">
+                  Logo{" "}
+                  {!order.logoUrl && !logoFile && !isDraft && (
+                    <span className="text-ruby">*</span>
+                  )}
+                </label>
+                <div
+                  {...getLogoRootProps()}
+                  className={`p-5 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                    isLogoDragActive
+                      ? "border-gold bg-gold/5"
+                      : "border-gray-light hover:border-gold/40"
+                  }`}
+                >
+                  <input {...getLogoInputProps()} />
+                  {logoFile ? (
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gold/10 border border-gold/30 rounded-lg flex items-center justify-center">
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          className="text-gold"
-                        >
-                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <span className="text-sm text-charcoal">{certificateFile.name}</span>
+                      <img
+                        src={URL.createObjectURL(logoFile)}
+                        alt="New logo"
+                        className="w-12 h-12 object-contain rounded-lg border border-gray-light bg-pearl p-1"
+                      />
+                      <span className="text-sm text-charcoal">
+                        {logoFile.name}
+                      </span>
                     </div>
-                  ) : order.certificateUrl ? (
+                  ) : order.logoUrl ? (
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gold/10 border border-gold/30 rounded-lg flex items-center justify-center">
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          className="text-gold"
-                        >
-                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
+                      <img
+                        src={order.logoUrl}
+                        alt="Current logo"
+                        className="w-12 h-12 object-contain rounded-lg border border-gray-light bg-pearl p-1"
+                      />
                       <span className="text-sm text-gray-warm">
-                        Current certificate - click to replace
+                        Current logo - click to replace
                       </span>
                     </div>
                   ) : (
                     <p className="text-sm text-center text-gray-warm">
-                      Drop or click to upload certificate (PDF, JPG, or PNG)
+                      Drop or click to upload logo
                     </p>
                   )}
-                </label>
+                </div>
               </div>
-            </div>
+
+              <div>
+                <label className="block text-sm font-medium text-charcoal mb-2">
+                  Certificate (Optional)
+                </label>
+                <div className="border-2 border-dashed rounded-xl transition-all cursor-pointer p-5 border-gray-light hover:border-gold/40">
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) =>
+                      setCertificateFile(e.target.files?.[0] || null)
+                    }
+                    className="hidden"
+                    id="certificate-input"
+                  />
+                  <label
+                    htmlFor="certificate-input"
+                    className="cursor-pointer block"
+                  >
+                    {certificateFile ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gold/10 border border-gold/30 rounded-lg flex items-center justify-center">
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            className="text-gold"
+                          >
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <span className="text-sm text-charcoal">
+                          {certificateFile.name}
+                        </span>
+                      </div>
+                    ) : order.certificateUrl ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gold/10 border border-gold/30 rounded-lg flex items-center justify-center">
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            className="text-gold"
+                          >
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <span className="text-sm text-gray-warm">
+                          Current certificate - click to replace
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-center text-gray-warm">
+                        Drop or click to upload certificate (PDF, JPG, or PNG)
+                      </p>
+                    )}
+                  </label>
+                </div>
+              </div>
+            </>
           )}
         </div>
 
