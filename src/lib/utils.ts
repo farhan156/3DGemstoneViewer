@@ -29,17 +29,45 @@ export function generateCertificateId(): string {
   return `cert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-export function optimizeCloudinaryUrl(url: string): string {
+type CloudinaryPreset = 'thumbnail' | 'viewer-low' | 'viewer-high' | 'default';
+
+interface CloudinaryOptimizeOptions {
+  preset?: CloudinaryPreset;
+  width?: number;
+}
+
+export function optimizeCloudinaryUrl(url: string, options: CloudinaryOptimizeOptions = {}): string {
   if (!url || !url.includes('cloudinary.com')) {
     return url;
   }
-  
-  // Add quality auto, format auto, and width optimization to Cloudinary URL
-  // Transforms: q_auto (auto quality), f_auto (auto format), w_800 (width for displays)
-  // This reduces file size by 60-80% while maintaining quality
+
+  // Avoid double-transforming URLs that are already optimized.
+  if (/\/upload\/(?:[^/]*q_auto|[^/]*f_auto|[^/]*w_\d+)/.test(url)) {
+    return url;
+  }
+
+  const preset = options.preset || 'default';
+  const transformsByPreset: Record<CloudinaryPreset, string[]> = {
+    thumbnail: ['f_auto', 'q_auto:eco', 'dpr_auto', 'c_limit', 'w_600'],
+    'viewer-low': ['f_auto', 'q_auto:eco', 'dpr_auto', 'c_limit', 'w_960'],
+    'viewer-high': ['f_auto', 'q_auto:good', 'dpr_auto', 'c_limit', 'w_1800'],
+    default: ['f_auto', 'q_auto:good', 'dpr_auto', 'c_limit', 'w_1400'],
+  };
+
+  const transforms = [...transformsByPreset[preset]];
+  if (options.width && options.width > 0) {
+    const widthTransform = `w_${Math.round(options.width)}`;
+    const widthIdx = transforms.findIndex((value) => value.startsWith('w_'));
+    if (widthIdx >= 0) {
+      transforms[widthIdx] = widthTransform;
+    } else {
+      transforms.push(widthTransform);
+    }
+  }
+
   return url.replace(
     '/upload/',
-    '/upload/q_auto,f_auto,w_800/'
+    `/upload/${transforms.join(',')}/`
   );
 }
 

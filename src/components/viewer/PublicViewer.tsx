@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Gemstone } from "@/types/gemstone";
 import { optimizeCloudinaryUrl } from "@/lib/utils";
 
@@ -17,11 +17,11 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const [showCertificate, setShowCertificate] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [highQualityFrames, setHighQualityFrames] = useState<Record<number, true>>({});
   const [showHintModal, setShowHintModal] = useState(true);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const dragStartX = useRef(0);
   const viewerRef = useRef<HTMLDivElement>(null);
-  const imageCache = useRef<HTMLImageElement[]>([]);
   const animationFrame = useRef<number>();
   const playInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastFrameTimeRef = useRef(0);
@@ -29,6 +29,50 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const currentFrameRef = useRef(0); // Track frame without state batching
   const dragOccurredRef = useRef(false); // Track if actual drag occurred
   const dragThresholdRef = useRef(18); // Min 18px movement to register as drag (not a tap)
+  const preloadedLowFramesRef = useRef<Set<number>>(new Set());
+  const preloadedHighFramesRef = useRef<Set<number>>(new Set());
+  const progressiveLoadTokenRef = useRef(0);
+
+  const preloadFrame = useCallback(
+    (index: number, quality: "low" | "high" = "low") => {
+      if (!gemstone.frames || gemstone.frames.length === 0) {
+        return Promise.resolve();
+      }
+
+      const total = gemstone.frames.length;
+      const safeIndex = ((index % total) + total) % total;
+      const loadedSet =
+        quality === "high"
+          ? preloadedHighFramesRef.current
+          : preloadedLowFramesRef.current;
+
+      if (loadedSet.has(safeIndex)) {
+        return Promise.resolve();
+      }
+
+      return new Promise<void>((resolve) => {
+        const img = new Image();
+        img.decoding = "async";
+        img.src = optimizeCloudinaryUrl(gemstone.frames[safeIndex], {
+          preset: quality === "high" ? "viewer-high" : "viewer-low",
+        });
+
+        img.onload = () => {
+          loadedSet.add(safeIndex);
+          if (quality === "high") {
+            setHighQualityFrames((prev) =>
+              prev[safeIndex] ? prev : { ...prev, [safeIndex]: true },
+            );
+          }
+          resolve();
+        };
+
+        // Resolve on error so one broken frame does not block the queue.
+        img.onerror = () => resolve();
+      });
+    },
+    [gemstone.frames],
+  );
 
   // Auto-rotation when playing using requestAnimationFrame for smooth animation
   useEffect(() => {
@@ -201,56 +245,114 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     setCurrentFrame(newFrame);
   };
 
-  // Preload first image immediately, then preload rest in background
+  // Preload first frame immediately, then progressively warm nearby and remaining frames.
   useEffect(() => {
     if (!gemstone.frames || gemstone.frames.length === 0) return;
 
-    const loadImages = async () => {
-      // PRIORITY: Load first frame immediately
-      try {
-        const firstFrameUrl = optimizeCloudinaryUrl(gemstone.frames[0]);
-        const firstImg = await new Promise<HTMLImageElement>(
-          (resolve, reject) => {
-            const img = new Image();
-            img.src = firstFrameUrl;
-            img.onload = () => resolve(img);
-            img.onerror = reject;
-          },
-        );
+    let cancelled = false;
+    const loadToken = ++progressiveLoadTokenRef.current;
 
-        imageCache.current[0] = firstImg;
-        setImagesLoaded(true); // Mark ready immediately after first frame
-      } catch (error) {
-        console.error("Error loading first frame:", error);
-        setImagesLoaded(true); // Still show even if first frame fails
+    preloadedLowFramesRef.current.clear();
+    preloadedHighFramesRef.current.clear();
+    setHighQualityFrames({});
+    setImagesLoaded(false);
+
+    const preloadWindow = async (
+      center: number,
+      radius: number,
+      quality: "low" | "high" = "low",
+    ) => {
+      const total = gemstone.frames.length;
+      const indices: number[] = [];
+      for (let offset = -radius; offset <= radius; offset += 1) {
+        indices.push((center + offset + total) % total);
       }
-
-      // BACKGROUND: Load remaining frames without blocking
-      if (gemstone.frames.length > 1) {
-        const remainingPromises = gemstone.frames.slice(1).map((src, index) => {
-          return new Promise<{ img: HTMLImageElement; index: number }>(
-            (resolve) => {
-              const img = new Image();
-              img.src = optimizeCloudinaryUrl(src);
-              img.onload = () => resolve({ img, index: index + 1 });
-              img.onerror = () => resolve({ img, index: index + 1 }); // Don't fail on individual frames
-            },
-          );
-        });
-
-        try {
-          const loadedImages = await Promise.all(remainingPromises);
-          loadedImages.forEach(({ img, index }) => {
-            imageCache.current[index] = img;
-          });
-        } catch (error) {
-          console.warn("Some frames failed to preload:", error);
-        }
-      }
+      await Promise.all(indices.map((index) => preloadFrame(index, quality)));
     };
 
-    loadImages();
-  }, [gemstone.frames]);
+    const queueRemainingFrames = () => {
+      const total = gemstone.frames.length;
+      const remaining: number[] = [];
+
+      for (let index = 0; index < total; index += 1) {
+        if (!preloadedLowFramesRef.current.has(index)) {
+          remaining.push(index);
+        }
+      }
+
+      let cursor = 0;
+      const runBatch = async () => {
+        if (cancelled || loadToken !== progressiveLoadTokenRef.current) return;
+        if (cursor >= remaining.length) return;
+
+        const batch = remaining.slice(cursor, cursor + 2);
+        cursor += 2;
+        await Promise.all(batch.map((index) => preloadFrame(index, "low")));
+
+        if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+          (window as Window & {
+            requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number;
+          }).requestIdleCallback(
+            () => {
+              void runBatch();
+            },
+            { timeout: 250 },
+          );
+        } else {
+          globalThis.setTimeout(() => {
+            void runBatch();
+          }, 80);
+        }
+      };
+
+      void runBatch();
+    };
+
+    const loadImages = async () => {
+      try {
+        await preloadFrame(0, "low");
+        if (cancelled || loadToken !== progressiveLoadTokenRef.current) return;
+        setImagesLoaded(true);
+      } catch (error) {
+        console.error("Error loading first frame:", error);
+        setImagesLoaded(true);
+      }
+
+      await preloadWindow(0, 3, "low");
+      if (cancelled || loadToken !== progressiveLoadTokenRef.current) return;
+      queueRemainingFrames();
+    };
+
+    void loadImages();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [gemstone.frames, preloadFrame]);
+
+  // Keep a local high-quality window around the actively viewed frame.
+  useEffect(() => {
+    if (!gemstone.frames || gemstone.frames.length === 0) return;
+
+    const total = gemstone.frames.length;
+    const nearIndices = [
+      currentFrame,
+      (currentFrame - 1 + total) % total,
+      (currentFrame + 1) % total,
+    ];
+
+    nearIndices.forEach((index) => {
+      void preloadFrame(index, "low");
+      void preloadFrame(index, "high");
+    });
+  }, [currentFrame, gemstone.frames, preloadFrame]);
+
+  const currentFrameSrc =
+    gemstone.frames && gemstone.frames.length > 0
+      ? optimizeCloudinaryUrl(gemstone.frames[currentFrame], {
+          preset: highQualityFrames[currentFrame] ? "viewer-high" : "viewer-low",
+        })
+      : "";
 
   // Show hint modal and fade it away after 1.5 seconds
   useEffect(() => {
@@ -535,7 +637,7 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
                     </div>
                   )}
                   <img
-                    src={optimizeCloudinaryUrl(gemstone.frames[currentFrame])}
+                    src={currentFrameSrc}
                     alt={`${gemstone.name || "Gemstone"} - Frame ${currentFrame + 1}`}
                     className="w-full h-full object-contain select-none"
                     style={{

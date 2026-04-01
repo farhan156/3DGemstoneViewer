@@ -1,7 +1,7 @@
 'use client';
 
 import { useGemstoneStore } from '@/store/gemstoneStore';
-import { cn } from '@/lib/utils';
+import { cn, optimizeCloudinaryUrl } from '@/lib/utils';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -126,7 +126,7 @@ export default function Gallery() {
                 }}
               >
                 {gem.frames && gem.frames.length > 0 ? (
-                  <img src={gem.frames[0]} alt={gem.name} className="w-full h-full object-cover" />
+                  <img src={optimizeCloudinaryUrl(gem.frames[0], { preset: 'thumbnail' })} alt={gem.name} className="w-full h-full object-cover" loading="lazy" />
                 ) : (
                   <div className="w-32 h-32 relative">
                     <div className="w-full h-full bg-gradient-to-br from-gold/20 to-transparent border-2 border-gold/30 transform rotate-45 relative rounded-lg">
