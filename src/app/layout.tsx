@@ -5,14 +5,14 @@ import "./globals.css";
 const poppinsBody = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
-  variable: "--font-inter",
+  variable: "--font-poppins-body",
   display: "swap",
 });
 
 const poppinsHeading = Poppins({
   subsets: ["latin"],
   weight: ["600", "700", "800"],
-  variable: "--font-cormorant",
+  variable: "--font-poppins-heading",
   display: "swap",
 });
 
