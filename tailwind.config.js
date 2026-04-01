@@ -57,8 +57,8 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
-        serif: ['var(--font-cormorant)', 'Cormorant Garamond', 'Georgia', 'serif'],
+        sans: ['var(--font-poppins-body)', 'system-ui', 'sans-serif'],
+        serif: ['var(--font-poppins-heading)', 'Georgia', 'serif'],
       },
       spacing: {
         '18': '4.5rem',
