@@ -98,8 +98,8 @@ export default function Orders({ onEditOrder }: OrdersProps) {
       return;
     }
 
-    if (order.tier === "B" && !order.logoUrl) {
-      toast.error("Tier B draft needs a logo before publishing");
+    if (order.tier === "A" && !order.logoUrl) {
+      toast.error("Tier A draft needs a logo before publishing");
       return;
     }
 
@@ -229,7 +229,7 @@ export default function Orders({ onEditOrder }: OrdersProps) {
 
                   <span
                     className={`inline-flex items-center justify-center w-16 h-6 rounded-full text-xs font-semibold ${
-                      order.tier === "B"
+                      order.tier === "A"
                         ? "bg-gold/15 text-gold border border-gold/30"
                         : "bg-cream text-charcoal border border-gray-light"
                     }`}

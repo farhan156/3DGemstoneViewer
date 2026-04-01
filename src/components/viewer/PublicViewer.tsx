@@ -574,8 +574,8 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
               )}
             </div>
 
-            {/* Logo overlay (Tier B) */}
-            {gemstone.tier === "B" && gemstone.logoUrl && (
+            {/* Logo overlay (Tier A - Premium) */}
+            {gemstone.tier === "A" && gemstone.logoUrl && (
               <div className="absolute bottom-16 md:bottom-20 right-3 md:right-5 z-10 pointer-events-none">
                 <img
                   src={gemstone.logoUrl}
@@ -617,7 +617,7 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
             )}
           </div>
 
-          {/* Floating Info Bar for Tier A */}
+          {/* Floating Info Bar for Tier A - Premium Version */}
           {gemstone.tier === "A" && gemstone.title && (
             <div
               className="bg-white rounded-xl md:rounded-2xl p-5 md:p-8 space-y-4 md:space-y-6 w-full lg:w-auto"
@@ -649,6 +649,16 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
                         </p>
                       </div>
                     )}
+                    {gemstone.treatment && (
+                      <div>
+                        <p className="text-xs text-gray-warm uppercase tracking-wider font-medium">
+                          Identification
+                        </p>
+                        <p className="text-sm text-charcoal font-medium">
+                          {gemstone.treatment}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
                 {gemstone.description && (
@@ -659,163 +669,9 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
                   </div>
                 )}
               </div>
-              <div className="pt-3 border-t border-gray-light/50">
-                <span className="text-xs text-gray-warm font-mono tracking-wide block">
-                  Gemstone #{gemstone.id}
-                </span>
-              </div>
-            </div>
-          )}
 
-          {/* Information Panel - Only for Tier B */}
-          {gemstone.tier === "B" && (
-            <div
-              className="bg-white rounded-xl md:rounded-2xl p-5 md:p-8 space-y-4 md:space-y-6 w-full lg:w-auto"
-              style={{ boxShadow: "0 20px 40px rgba(0, 0, 0, 0.12)" }}
-            >
-              {/* Title (Tier A & B) */}
-              {gemstone.title && (
-                <div className="pb-5 border-b border-gray-light/50">
-                  <h1 className="font-serif text-3xl md:text-4xl text-charcoal mb-1 tracking-tight leading-tight">
-                    {gemstone.title}
-                  </h1>
-                  {gemstone.tier && (
-                    <span
-                      className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full mt-2 ${
-                        gemstone.tier === "B"
-                          ? "bg-gold/15 text-gold"
-                          : "bg-cream text-charcoal"
-                      }`}
-                    >
-                      Tier {gemstone.tier}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Legacy name fallback */}
-              {!gemstone.title && visibility.showName && gemstone.name && (
-                <div className="pb-6 border-b border-gray-light/50">
-                  <h1 className="font-serif text-4xl text-charcoal mb-2 tracking-tight leading-tight">
-                    {gemstone.name}
-                  </h1>
-                  {visibility.showType && gemstone.type && (
-                    <p className="text-gray-warm text-sm mb-1 capitalize">
-                      {gemstone.type}
-                    </p>
-                  )}
-                  <p className="text-gray-cool text-xs font-mono tracking-wide">
-                    ID: {gemstone.id}
-                  </p>
-                </div>
-              )}
-
-              {/* Tier B logo in panel */}
-              {gemstone.tier === "B" && gemstone.logoUrl && (
-                <div className="flex items-center gap-3 pb-4 border-b border-gray-light/50">
-                  <img
-                    src={gemstone.logoUrl}
-                    alt="Brand logo"
-                    className="w-10 h-10 object-contain"
-                  />
-                </div>
-              )}
-
-              <div className="space-y-3">
-                {visibility.showCustomerName && gemstone.customerName && (
-                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                      Customer Name
-                    </span>
-                    <span className="text-sm font-medium text-charcoal">
-                      {gemstone.customerName}
-                    </span>
-                  </div>
-                )}
-                {visibility.showCustomerContact && gemstone.customerContact && (
-                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                      Contact
-                    </span>
-                    <span className="text-sm font-medium text-charcoal">
-                      {gemstone.customerContact}
-                    </span>
-                  </div>
-                )}
-                {visibility.showCustomerEmail && gemstone.customerEmail && (
-                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                      Email
-                    </span>
-                    <span className="text-sm font-medium text-charcoal">
-                      {gemstone.customerEmail}
-                    </span>
-                  </div>
-                )}
-                {visibility.showWeight && gemstone.weight && (
-                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                      Weight
-                    </span>
-                    <span className="text-sm font-medium text-charcoal">
-                      {gemstone.weight} carats
-                    </span>
-                  </div>
-                )}
-                {visibility.showCut && gemstone.cut && (
-                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                      Cut
-                    </span>
-                    <span className="text-sm font-medium text-charcoal">
-                      {gemstone.cut}
-                    </span>
-                  </div>
-                )}
-                {visibility.showClarity && gemstone.clarity && (
-                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                      Clarity
-                    </span>
-                    <span className="text-sm font-medium text-charcoal">
-                      {gemstone.clarity}
-                    </span>
-                  </div>
-                )}
-                {visibility.showColorGrade && gemstone.colorGrade && (
-                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                      Color Grade
-                    </span>
-                    <span className="text-sm font-medium text-charcoal">
-                      {gemstone.colorGrade}
-                    </span>
-                  </div>
-                )}
-                {visibility.showOrigin && gemstone.origin && (
-                  <div className="flex justify-between items-center pb-3 border-b border-gray-light/30">
-                    <span className="text-xs font-medium text-gray-warm uppercase tracking-wider">
-                      Origin
-                    </span>
-                    <span className="text-sm font-medium text-charcoal">
-                      {gemstone.origin}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {gemstone.description && (
-                <div className="p-5 bg-pearl/30 border border-gray-light/50 rounded-lg -ml-3">
-                  <p className="text-xs font-medium text-gray-warm uppercase tracking-wider mb-2">
-                    Description
-                  </p>
-                  <p className="text-sm text-charcoal leading-relaxed">
-                    {gemstone.description}
-                  </p>
-                </div>
-              )}
-
-              {visibility.showCertificate && gemstone.certificateUrl && (
+              {/* Certificate Section for Tier A */}
+              {gemstone.certificateUrl && (
                 <div className="p-5 bg-cream/50 border border-gold/20 rounded-lg border-l-4 border-l-gold">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-12 h-12 bg-gold/10 border border-gold/30 rounded-lg flex items-center justify-center text-gold">
@@ -861,6 +717,56 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
                 </div>
               )}
 
+              <div className="pt-3 border-t border-gray-light/50">
+                <span className="text-xs text-gray-warm font-mono tracking-wide block">
+                  Gemstone #{gemstone.id}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Information Panel - Only for Tier B (Standard) */}
+          {gemstone.tier === "B" && gemstone.title && (
+            <div
+              className="bg-white rounded-xl md:rounded-2xl p-5 md:p-8 space-y-4 md:space-y-6 w-full lg:w-auto"
+              style={{ boxShadow: "0 20px 40px rgba(0, 0, 0, 0.12)" }}
+            >
+              <div>
+                <h2 className="text-lg md:text-xl font-serif text-charcoal tracking-tight mb-3">
+                  {gemstone.title}
+                </h2>
+                {(gemstone.weight || gemstone.origin) && (
+                  <div className="flex flex-col gap-4">
+                    {gemstone.weight && (
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-serif font-semibold text-gold">
+                          {gemstone.weight}
+                        </span>
+                        <span className="text-sm text-gray-warm font-medium">
+                          carats
+                        </span>
+                      </div>
+                    )}
+                    {gemstone.origin && (
+                      <div>
+                        <p className="text-xs text-gray-warm uppercase tracking-wider font-medium">
+                          Origin
+                        </p>
+                        <p className="text-sm text-charcoal font-medium">
+                          {gemstone.origin}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {gemstone.description && (
+                  <div className="mt-4 pt-4 border-t border-gray-light/50">
+                    <p className="text-sm text-charcoal leading-relaxed">
+                      {gemstone.description}
+                    </p>
+                  </div>
+                )}
+              </div>
               <div className="pt-3 border-t border-gray-light/50">
                 <span className="text-xs text-gray-warm font-mono tracking-wide block">
                   Gemstone #{gemstone.id}

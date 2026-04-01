@@ -51,8 +51,10 @@ export default function AddNewOrder({
     initialDraft?.description || "",
   );
   const [tier, setTier] = useState<"A" | "B">(initialDraft?.tier || "A");
+  const [treatment, setTreatment] = useState(initialDraft?.treatment || "");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [createdLink, setCreatedLink] = useState<string | null>(null);
@@ -241,6 +243,7 @@ export default function AddNewOrder({
           title: title.trim() || undefined,
           weight: caratWeight ? parseFloat(caratWeight) : undefined,
           origin: origin.trim() || undefined,
+          treatment: treatment.trim() || undefined,
           description: description.trim() || undefined,
           updatedAt: now,
         };
@@ -259,6 +262,7 @@ export default function AddNewOrder({
           title: title.trim() || undefined,
           weight: caratWeight ? parseFloat(caratWeight) : undefined,
           origin: origin.trim() || undefined,
+          treatment: treatment.trim() || undefined,
           description: description.trim() || undefined,
           status: "draft",
           frames: [],
@@ -315,8 +319,8 @@ export default function AddNewOrder({
       return;
     }
 
-    if (tier === "B" && !logoFile && !initialDraft?.logoUrl) {
-      toast.error("Please upload a logo for Tier B");
+    if (tier === "A" && !logoFile && !initialDraft?.logoUrl) {
+      toast.error("Please upload a logo for Tier A");
       return;
     }
 
@@ -403,13 +407,24 @@ export default function AddNewOrder({
       }
 
       let logoUrl: string | undefined = initialDraft?.logoUrl;
-      if (tier === "B" && logoFile) {
+      if (tier === "A" && logoFile) {
         if (loadingToast) {
           toast.loading("Uploading logo...", { id: loadingToast });
         }
         logoUrl = await uploadToCloudinary(
           logoFile,
           `orders/${orderNumber}/logo`,
+        );
+      }
+
+      let certificateUrl: string | undefined = initialDraft?.certificateUrl;
+      if (tier === "A" && certificateFile) {
+        if (loadingToast) {
+          toast.loading("Uploading certificate...", { id: loadingToast });
+        }
+        certificateUrl = await uploadToCloudinary(
+          certificateFile,
+          `orders/${orderNumber}/certificate`,
         );
       }
 
@@ -420,12 +435,14 @@ export default function AddNewOrder({
         const updates: Partial<Gemstone> = {
           customerName: customerName.trim(),
           customerContact: normalizePhoneNumber(phoneNumber),
-          title: title.trim(),
           tier,
+          title: title.trim(),
           weight: caratWeight ? parseFloat(caratWeight) : undefined,
           origin: origin.trim() || undefined,
+          treatment: treatment.trim() || undefined,
           description: description.trim() || undefined,
           logoUrl,
+          certificateUrl,
           frames: frameUrls,
           shareableLink,
           status: "completed",
@@ -444,8 +461,10 @@ export default function AddNewOrder({
           tier,
           weight: caratWeight ? parseFloat(caratWeight) : undefined,
           origin: origin.trim() || undefined,
+          treatment: treatment.trim() || undefined,
           description: description.trim() || undefined,
           logoUrl,
+          certificateUrl,
           frames: frameUrls,
           shareableLink,
           status: "completed",
@@ -681,11 +700,11 @@ export default function AddNewOrder({
                   Tier {t}
                 </span>
                 <span className="text-xs font-medium text-gold bg-gold/10 px-2 py-1 rounded-full">
-                  {t === "A" ? "Standard" : "Premium"}
+                  {t === "A" ? "Premium" : "Standard"}
                 </span>
               </div>
               <p className="text-sm text-gray-warm">
-                {t === "A" ? "Video with Title" : "Video + Logo + Embed Link"}
+                {t === "A" ? "Video + Logo + Embed Link" : "Video with Title"}
               </p>
             </label>
           ))}
@@ -728,6 +747,20 @@ export default function AddNewOrder({
               className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal placeholder-gray-warm rounded-lg focus:outline-none focus:border-gold transition-all"
             />
           </div>
+          {tier === "A" && (
+            <div>
+              <label className="block text-sm font-medium text-charcoal mb-2">
+                Identification
+              </label>
+              <input
+                type="text"
+                value={treatment}
+                onChange={(e) => setTreatment(e.target.value)}
+                placeholder="e.g., Natural, Heated"
+                className="w-full h-11 px-4 bg-pearl border border-gray-light text-charcoal placeholder-gray-warm rounded-lg focus:outline-none focus:border-gold transition-all"
+              />
+            </div>
+          )}
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-charcoal mb-2">
               Description
@@ -867,7 +900,7 @@ export default function AddNewOrder({
         )}
       </section>
 
-      {tier === "B" && (
+      {tier === "A" && (
         <section className="bg-white rounded-xl border border-gray-light/50 p-6">
           <h2 className="font-serif text-xl text-charcoal mb-5">Brand Logo</h2>
           <div
@@ -905,6 +938,53 @@ export default function AddNewOrder({
                 <p className="text-xs text-gray-warm">PNG, JPG, SVG, WebP</p>
               </div>
             )}
+          </div>
+
+          <h2 className="font-serif text-xl text-charcoal mb-5 mt-8">
+            Certificate (Optional)
+          </h2>
+          <div className="border-2 border-dashed rounded-xl transition-all cursor-pointer p-8 border-gray-light hover:border-gold/50 hover:bg-cream/30">
+            <input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={(e) => setCertificateFile(e.target.files?.[0] || null)}
+              className="hidden"
+              id="certificate-input"
+            />
+            <label htmlFor="certificate-input" className="cursor-pointer block">
+              {certificateFile ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gold/10 border border-gold/30 rounded-lg flex items-center justify-center">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="text-gold"
+                    >
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-charcoal">
+                      {certificateFile.name}
+                    </p>
+                    <p className="text-xs text-gray-warm mt-0.5">
+                      Click to replace
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <p className="text-sm font-medium text-charcoal mb-1">
+                    Drop certificate here
+                  </p>
+                  <p className="text-xs text-gray-warm">PDF, JPG, or PNG</p>
+                </div>
+              )}
+            </label>
           </div>
         </section>
       )}
