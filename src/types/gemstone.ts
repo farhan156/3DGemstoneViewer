@@ -14,7 +14,6 @@ export interface VisibilitySettings {
 
 export interface Gemstone {
   id: string;
-  publicId?: string;
   orderNumber?: string;
   name?: string;
   title?: string;

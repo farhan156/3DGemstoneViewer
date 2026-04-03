@@ -1,5 +1,4 @@
 import { type ClassValue, clsx } from 'clsx';
-import type { Gemstone } from '@/types/gemstone';
 
 export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
@@ -28,26 +27,6 @@ export function generateGemstoneId(): string {
 
 export function generateCertificateId(): string {
   return `cert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
-
-export function generatePublicViewerId(): string {
-  return `g-${crypto.randomUUID()}`;
-}
-
-export function getPublicViewerPath(gemstone: Pick<Gemstone, 'publicId' | 'id' | 'shareableLink'>): string {
-  if (gemstone.publicId) {
-    const publicViewerPath = `/view/${gemstone.publicId}`;
-    if (gemstone.shareableLink === publicViewerPath) {
-      return gemstone.shareableLink;
-    }
-    return publicViewerPath;
-  }
-
-  if (gemstone.shareableLink?.startsWith('/view/')) {
-    return gemstone.shareableLink;
-  }
-
-  return `/view/${gemstone.id}`;
 }
 
 type CloudinaryPreset = 'thumbnail' | 'viewer-low' | 'viewer-high' | 'default';
