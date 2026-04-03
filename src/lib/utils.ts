@@ -31,17 +31,16 @@ export function generateCertificateId(): string {
 }
 
 export function generatePublicViewerId(): string {
-  const random = Math.random().toString(36).slice(2, 10);
-  return `g-${Date.now().toString(36)}${random}`;
+  return `g-${crypto.randomUUID()}`;
 }
 
 export function getPublicViewerPath(gemstone: Pick<Gemstone, 'publicId' | 'id' | 'shareableLink'>): string {
-  if (gemstone.shareableLink?.startsWith('/view/') && gemstone.publicId) {
-    return gemstone.shareableLink;
-  }
-
   if (gemstone.publicId) {
-    return `/view/${gemstone.publicId}`;
+    const publicViewerPath = `/view/${gemstone.publicId}`;
+    if (gemstone.shareableLink === publicViewerPath) {
+      return gemstone.shareableLink;
+    }
+    return publicViewerPath;
   }
 
   if (gemstone.shareableLink?.startsWith('/view/')) {

@@ -49,7 +49,9 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
       return new Promise<void>((resolve) => {
         const img = new Image();
         img.decoding = "async";
-        img.src = optimizeCloudinaryUrl(gemstone.frames[safeIndex]);
+        img.src = optimizeCloudinaryUrl(gemstone.frames[safeIndex], {
+          preset: "viewer-low",
+        });
 
         img.onload = () => {
           loadedSet.add(safeIndex);
@@ -150,6 +152,7 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
           gemstone.frames.length;
         currentFrameRef.current = newFrame;
         setCurrentFrame(newFrame);
+        setHasStartedRotation(true);
         dragStartX.current = e.clientX;
       });
     }
@@ -199,6 +202,7 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
           gemstone.frames.length;
         currentFrameRef.current = newFrame;
         setCurrentFrame(newFrame);
+        setHasStartedRotation(true);
         dragStartX.current = e.touches[0].clientX;
       });
     }
@@ -271,7 +275,9 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
 
   useEffect(() => {
     if (!imagesLoaded) return;
-    if (!gemstone.frames || gemstone.frames.length <= 1) {
+
+    // If autoplay has been paused before first frame advance, avoid getting stuck.
+    if (!isPlaying || !gemstone.frames || gemstone.frames.length <= 1) {
       setIsViewerReady(true);
       return;
     }
@@ -279,11 +285,13 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     if (hasStartedRotation) {
       setIsViewerReady(true);
     }
-  }, [imagesLoaded, hasStartedRotation, gemstone.frames]);
+  }, [imagesLoaded, hasStartedRotation, gemstone.frames, isPlaying]);
 
   const currentFrameSrc =
     gemstone.frames && gemstone.frames.length > 0
-      ? optimizeCloudinaryUrl(gemstone.frames[currentFrame])
+      ? optimizeCloudinaryUrl(gemstone.frames[currentFrame], {
+          preset: isViewerReady ? "viewer-high" : "viewer-low",
+        })
       : "";
 
   // Show hint modal and fade it away after 1.5 seconds

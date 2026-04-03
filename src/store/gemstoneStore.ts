@@ -64,11 +64,18 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
         gemstones.push(gemstone);
       });
 
-      if (migrations.length > 0) {
-        await Promise.allSettled(migrations);
-      }
-
       set({ gemstones });
+
+      if (migrations.length > 0) {
+        void Promise.allSettled(migrations).then((results) => {
+          const failedMigrations = results.filter(
+            (result) => result.status === 'rejected',
+          );
+          if (failedMigrations.length > 0) {
+            console.error('Error backfilling gemstone public ids:', failedMigrations);
+          }
+        });
+      }
     } catch (error) {
       console.error('Error fetching gemstones:', error);
     } finally {
@@ -148,12 +155,15 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
   getGemstoneById: async (id: string) => {
     if (!db) return null;
     try {
-      const lookupValue = decodeURIComponent(id);
-
       // Backward compatibility: direct Firestore document id lookup.
-      const docSnap = await getDoc(doc(db, 'gemstones', lookupValue));
+      const docSnap = await getDoc(doc(db, 'gemstones', id));
       if (docSnap.exists()) {
         return { ...docSnap.data(), id: docSnap.id } as Gemstone;
+      }
+
+      const lookupValue = decodeURIComponent(id);
+      if (lookupValue.includes('/')) {
+        return null;
       }
 
       // Preferred lookup path: clean public token.
