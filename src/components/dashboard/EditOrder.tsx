@@ -5,7 +5,9 @@ import toast from "react-hot-toast";
 import { useDropzone, type FileRejection } from "react-dropzone";
 import { useGemstoneStore } from "@/store/gemstoneStore";
 import {
+  generatePublicViewerId,
   generateUniqueOrderNumber,
+  getPublicViewerPath,
   getFrameValidationMessage,
   isValidPhoneNumber,
   normalizePhoneNumber,
@@ -253,9 +255,14 @@ export default function EditOrder({ order, onClose }: EditOrderProps) {
 
     try {
       const updates = await buildSharedUpdates(loadingToast);
+      const publicId = order.publicId || generatePublicViewerId();
 
       updates.status = "completed";
-      updates.shareableLink = `/view/${order.id}`;
+      updates.publicId = publicId;
+      updates.shareableLink = getPublicViewerPath({
+        id: order.id,
+        publicId,
+      });
       if (!updates.orderNumber) {
         updates.orderNumber = generateUniqueOrderNumber(
           gemstones.map((item) => item.orderNumber || ""),

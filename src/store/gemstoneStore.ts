@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Gemstone, Certificate } from '@/types/gemstone';
 import { db } from '@/lib/firebase';
-import { collection, setDoc, getDocs, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, setDoc, getDocs, doc, updateDoc, deleteDoc, getDoc, query, where, limit } from 'firebase/firestore';
 
 interface GemstoneStore {
   gemstones: Gemstone[];
@@ -116,10 +116,42 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
   getGemstoneById: async (id: string) => {
     if (!db) return null;
     try {
-      const docSnap = await getDoc(doc(db, 'gemstones', id));
+      const lookupValue = decodeURIComponent(id);
+
+      // Backward compatibility: direct Firestore document id lookup.
+      const docSnap = await getDoc(doc(db, 'gemstones', lookupValue));
       if (docSnap.exists()) {
         return { ...docSnap.data(), id: docSnap.id } as Gemstone;
       }
+
+      // Preferred lookup path: clean public token.
+      const byPublicId = await getDocs(
+        query(
+          collection(db, 'gemstones'),
+          where('publicId', '==', lookupValue),
+          limit(1),
+        ),
+      );
+
+      if (!byPublicId.empty) {
+        const match = byPublicId.docs[0];
+        return { ...match.data(), id: match.id } as Gemstone;
+      }
+
+      // Additional compatibility for older stored links.
+      const byShareableLink = await getDocs(
+        query(
+          collection(db, 'gemstones'),
+          where('shareableLink', '==', `/view/${lookupValue}`),
+          limit(1),
+        ),
+      );
+
+      if (!byShareableLink.empty) {
+        const match = byShareableLink.docs[0];
+        return { ...match.data(), id: match.id } as Gemstone;
+      }
+
       return null;
     } catch (error) {
       console.error('Error fetching gemstone:', error);
