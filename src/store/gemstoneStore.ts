@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Gemstone, Certificate } from '@/types/gemstone';
 import { db } from '@/lib/firebase';
+import { generatePublicViewerId, getPublicViewerPath } from '@/lib/utils';
 import { collection, setDoc, getDocs, doc, updateDoc, deleteDoc, getDoc, query, where, limit } from 'firebase/firestore';
 
 interface GemstoneStore {
@@ -33,9 +34,40 @@ export const useGemstoneStore = create<GemstoneStore>((set, get) => ({
     try {
       const querySnapshot = await getDocs(collection(db, 'gemstones'));
       const gemstones: Gemstone[] = [];
-      querySnapshot.forEach((doc) => {
-        gemstones.push({ ...doc.data(), id: doc.id } as Gemstone);
+      const migrations: Promise<unknown>[] = [];
+
+      querySnapshot.forEach((snap) => {
+        const gemstone = { ...snap.data(), id: snap.id } as Gemstone;
+
+        if (!gemstone.publicId) {
+          const publicId = generatePublicViewerId();
+          gemstone.publicId = publicId;
+
+          if (gemstone.status === 'completed') {
+            gemstone.shareableLink = getPublicViewerPath({
+              id: gemstone.id,
+              publicId,
+            });
+          }
+
+          migrations.push(
+            updateDoc(doc(db, 'gemstones', snap.id), {
+              publicId,
+              ...(gemstone.status === 'completed' && gemstone.shareableLink
+                ? { shareableLink: gemstone.shareableLink }
+                : {}),
+              updatedAt: new Date().toISOString(),
+            }),
+          );
+        }
+
+        gemstones.push(gemstone);
       });
+
+      if (migrations.length > 0) {
+        await Promise.allSettled(migrations);
+      }
+
       set({ gemstones });
     } catch (error) {
       console.error('Error fetching gemstones:', error);
