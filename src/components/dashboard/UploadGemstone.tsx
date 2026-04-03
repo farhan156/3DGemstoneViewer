@@ -4,7 +4,12 @@ import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import toast from "react-hot-toast";
 import { useGemstoneStore } from "@/store/gemstoneStore";
-import { generateCertificateId, generateUniqueOrderNumber } from "@/lib/utils";
+import {
+  generateCertificateId,
+  generatePublicViewerId,
+  generateUniqueOrderNumber,
+  getPublicViewerPath,
+} from "@/lib/utils";
 import type { VisibilitySettings } from "@/types/gemstone";
 
 interface UploadGemstoneProps {
@@ -236,14 +241,16 @@ export default function UploadGemstone({ onComplete }: UploadGemstoneProps) {
       }
 
       // Create gemstone with customer data and optional fields
+      const publicId = generatePublicViewerId();
       const newGem: any = {
         id: orderNumber,
+        publicId,
         orderNumber,
         customerName: customerData.name,
         customerContact: customerData.contact,
         status: "completed" as const,
         frames: frameUrls,
-        shareableLink: `/view/${orderNumber}`,
+        shareableLink: getPublicViewerPath({ id: orderNumber, publicId }),
         visibility,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
