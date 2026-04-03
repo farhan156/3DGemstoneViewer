@@ -689,48 +689,25 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
                         </span>
                       </div>
                     )}
-                    {(gemstone.origin || gemstone.treatment) && (
-                      <div className="grid grid-cols-2 gap-4">
-                        {gemstone.origin && (
-                          <div>
-                            <p className="text-xs text-gray-warm uppercase tracking-wider font-medium">
-                              Origin
-                            </p>
-                            <p className="text-sm text-charcoal font-medium">
-                              {gemstone.origin}
-                            </p>
-                          </div>
-                        )}
-                        {gemstone.treatment && (
-                          <div>
-                            <p className="text-xs text-gray-warm uppercase tracking-wider font-medium">
-                              Identification
-                            </p>
-                            <p className="text-sm text-charcoal font-medium">
-                              {gemstone.treatment}
-                            </p>
-                          </div>
-                        )}
+                    {gemstone.origin && (
+                      <div>
+                        <p className="text-xs text-gray-warm uppercase tracking-wider font-medium">
+                          Origin
+                        </p>
+                        <p className="text-sm text-charcoal font-medium">
+                          {gemstone.origin}
+                        </p>
                       </div>
                     )}
-                    {gemstone.certificateUrl && (
-                      <button
-                        onClick={() => setShowCertificate(true)}
-                        className="col-span-2 mt-4 h-11 bg-gold text-white font-medium text-sm hover:bg-gold-dark rounded-lg transition-all flex items-center justify-center gap-2 shadow-md"
-                      >
-                        <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 18 18"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                        >
-                          <circle cx="9" cy="9" r="6" />
-                          <circle cx="9" cy="9" r="2" />
-                        </svg>
-                        View Certificate
-                      </button>
+                    {gemstone.treatment && (
+                      <div>
+                        <p className="text-xs text-gray-warm uppercase tracking-wider font-medium">
+                          Identification
+                        </p>
+                        <p className="text-sm text-charcoal font-medium">
+                          {gemstone.treatment}
+                        </p>
+                      </div>
                     )}
                   </div>
                 )}
@@ -742,6 +719,53 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
                   </div>
                 )}
               </div>
+
+              {/* Certificate Section for Tier A */}
+              {gemstone.certificateUrl && (
+                <div className="p-5 bg-cream/50 border border-gold/20 rounded-lg border-l-4 border-l-gold">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-gold/10 border border-gold/30 rounded-lg flex items-center justify-center text-gold">
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                      >
+                        <rect x="6" y="4" width="12" height="16" rx="1" />
+                        <path d="M10 8H14M10 12H14" />
+                        <circle cx="18" cy="18" r="4" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-charcoal mb-0.5">
+                        Certification
+                      </div>
+                      <div className="text-xs font-mono text-gray-warm">
+                        Certificate Available
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowCertificate(true)}
+                    className="w-full h-11 bg-gold text-white font-medium text-sm hover:bg-gold-dark rounded-lg transition-all flex items-center justify-center gap-2 shadow-md"
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 18 18"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    >
+                      <circle cx="9" cy="9" r="6" />
+                      <circle cx="9" cy="9" r="2" />
+                    </svg>
+                    View Certificate
+                  </button>
+                </div>
+              )}
 
               <div className="pt-3 border-t border-gray-light/50">
                 <span className="text-xs text-gray-warm font-mono tracking-wide block">
