@@ -16,9 +16,8 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState(false);
-  const [hasStartedRotation, setHasStartedRotation] = useState(false);
-  const [isViewerReady, setIsViewerReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [highQualityFrames, setHighQualityFrames] = useState<Record<number, true>>({});
   const [showHintModal, setShowHintModal] = useState(true);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const dragStartX = useRef(0);
@@ -31,16 +30,21 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
   const dragOccurredRef = useRef(false); // Track if actual drag occurred
   const dragThresholdRef = useRef(18); // Min 18px movement to register as drag (not a tap)
   const preloadedLowFramesRef = useRef<Set<number>>(new Set());
+  const preloadedHighFramesRef = useRef<Set<number>>(new Set());
+  const progressiveLoadTokenRef = useRef(0);
 
   const preloadFrame = useCallback(
-    (index: number) => {
+    (index: number, quality: "low" | "high" = "low") => {
       if (!gemstone.frames || gemstone.frames.length === 0) {
         return Promise.resolve();
       }
 
       const total = gemstone.frames.length;
       const safeIndex = ((index % total) + total) % total;
-      const loadedSet = preloadedLowFramesRef.current;
+      const loadedSet =
+        quality === "high"
+          ? preloadedHighFramesRef.current
+          : preloadedLowFramesRef.current;
 
       if (loadedSet.has(safeIndex)) {
         return Promise.resolve();
@@ -50,11 +54,16 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
         const img = new Image();
         img.decoding = "async";
         img.src = optimizeCloudinaryUrl(gemstone.frames[safeIndex], {
-          preset: "viewer-low",
+          preset: quality === "high" ? "viewer-high" : "viewer-low",
         });
 
         img.onload = () => {
           loadedSet.add(safeIndex);
+          if (quality === "high") {
+            setHighQualityFrames((prev) =>
+              prev[safeIndex] ? prev : { ...prev, [safeIndex]: true },
+            );
+          }
           resolve();
         };
 
@@ -78,7 +87,6 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
         currentFrameRef.current =
           (currentFrameRef.current + 1) % gemstone.frames.length;
         setCurrentFrame(currentFrameRef.current);
-        setHasStartedRotation(true);
         lastFrameTimeRef.current = currentTime;
       }
 
@@ -152,7 +160,6 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
           gemstone.frames.length;
         currentFrameRef.current = newFrame;
         setCurrentFrame(newFrame);
-        setHasStartedRotation(true);
         dragStartX.current = e.clientX;
       });
     }
@@ -202,7 +209,6 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
           gemstone.frames.length;
         currentFrameRef.current = newFrame;
         setCurrentFrame(newFrame);
-        setHasStartedRotation(true);
         dragStartX.current = e.touches[0].clientX;
       });
     }
@@ -239,31 +245,82 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     setCurrentFrame(newFrame);
   };
 
-  // Keep loading simple: load frame 1 first, then quietly warm a small nearby range.
+  // Preload first frame immediately, then progressively warm nearby and remaining frames.
   useEffect(() => {
     if (!gemstone.frames || gemstone.frames.length === 0) return;
 
     let cancelled = false;
+    const loadToken = ++progressiveLoadTokenRef.current;
 
     preloadedLowFramesRef.current.clear();
+    preloadedHighFramesRef.current.clear();
+    setHighQualityFrames({});
     setImagesLoaded(false);
-    setHasStartedRotation(false);
-    setIsViewerReady(false);
+
+    const preloadWindow = async (
+      center: number,
+      radius: number,
+      quality: "low" | "high" = "low",
+    ) => {
+      const total = gemstone.frames.length;
+      const indices: number[] = [];
+      for (let offset = -radius; offset <= radius; offset += 1) {
+        indices.push((center + offset + total) % total);
+      }
+      await Promise.all(indices.map((index) => preloadFrame(index, quality)));
+    };
+
+    const queueRemainingFrames = () => {
+      const total = gemstone.frames.length;
+      const remaining: number[] = [];
+
+      for (let index = 0; index < total; index += 1) {
+        if (!preloadedLowFramesRef.current.has(index)) {
+          remaining.push(index);
+        }
+      }
+
+      let cursor = 0;
+      const runBatch = async () => {
+        if (cancelled || loadToken !== progressiveLoadTokenRef.current) return;
+        if (cursor >= remaining.length) return;
+
+        const batch = remaining.slice(cursor, cursor + 2);
+        cursor += 2;
+        await Promise.all(batch.map((index) => preloadFrame(index, "low")));
+
+        if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+          (window as Window & {
+            requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number;
+          }).requestIdleCallback(
+            () => {
+              void runBatch();
+            },
+            { timeout: 250 },
+          );
+        } else {
+          globalThis.setTimeout(() => {
+            void runBatch();
+          }, 80);
+        }
+      };
+
+      void runBatch();
+    };
 
     const loadImages = async () => {
       try {
-        await preloadFrame(0);
-        if (cancelled) return;
+        await preloadFrame(0, "low");
+        if (cancelled || loadToken !== progressiveLoadTokenRef.current) return;
         setImagesLoaded(true);
-
-        const warmupFrames = [1, 2, 3, 4].filter(
-          (index) => index < gemstone.frames.length,
-        );
-        void Promise.all(warmupFrames.map((index) => preloadFrame(index)));
       } catch (error) {
         console.error("Error loading first frame:", error);
         setImagesLoaded(true);
       }
+
+      await preloadWindow(0, 3, "low");
+      if (cancelled || loadToken !== progressiveLoadTokenRef.current) return;
+      queueRemainingFrames();
     };
 
     void loadImages();
@@ -273,24 +330,27 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
     };
   }, [gemstone.frames, preloadFrame]);
 
+  // Keep a local high-quality window around the actively viewed frame.
   useEffect(() => {
-    if (!imagesLoaded) return;
+    if (!gemstone.frames || gemstone.frames.length === 0) return;
 
-    // If autoplay has been paused before first frame advance, avoid getting stuck.
-    if (!isPlaying || !gemstone.frames || gemstone.frames.length <= 1) {
-      setIsViewerReady(true);
-      return;
-    }
+    const total = gemstone.frames.length;
+    const nearIndices = [
+      currentFrame,
+      (currentFrame - 1 + total) % total,
+      (currentFrame + 1) % total,
+    ];
 
-    if (hasStartedRotation) {
-      setIsViewerReady(true);
-    }
-  }, [imagesLoaded, hasStartedRotation, gemstone.frames, isPlaying]);
+    nearIndices.forEach((index) => {
+      void preloadFrame(index, "low");
+      void preloadFrame(index, "high");
+    });
+  }, [currentFrame, gemstone.frames, preloadFrame]);
 
   const currentFrameSrc =
     gemstone.frames && gemstone.frames.length > 0
       ? optimizeCloudinaryUrl(gemstone.frames[currentFrame], {
-          preset: isViewerReady ? "viewer-high" : "viewer-low",
+          preset: highQualityFrames[currentFrame] ? "viewer-high" : "viewer-low",
         })
       : "";
 
@@ -571,17 +631,9 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
             >
               {gemstone.frames && gemstone.frames.length > 0 ? (
                 <>
-                  {!isViewerReady && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-sm">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="relative h-14 w-14">
-                          <div className="absolute inset-0 rounded-full border-2 border-gold/30" />
-                          <div className="absolute inset-0 rounded-full border-t-2 border-gold animate-spin" />
-                        </div>
-                        <p className="text-xs tracking-[0.22em] uppercase text-charcoal/80 font-medium">
-                          Loading Gem
-                        </p>
-                      </div>
+                  {!imagesLoaded && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-cream/50">
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gold"></div>
                     </div>
                   )}
                   <img
@@ -589,7 +641,7 @@ export default function PublicViewer({ gemstone }: PublicViewerProps) {
                     alt={`${gemstone.name || "Gemstone"} - Frame ${currentFrame + 1}`}
                     className="w-full h-full object-contain select-none"
                     style={{
-                      opacity: isViewerReady ? 1 : 0,
+                      opacity: imagesLoaded ? 1 : 0,
                       transition: "opacity 0.3s ease-in-out",
                       imageRendering: "crisp-edges",
                       willChange: "transform",

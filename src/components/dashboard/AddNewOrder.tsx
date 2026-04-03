@@ -6,9 +6,7 @@ import toast from "react-hot-toast";
 import { useGemstoneStore } from "@/store/gemstoneStore";
 import {
   generateGemstoneId,
-  generatePublicViewerId,
   generateUniqueOrderNumber,
-  getPublicViewerPath,
   getFrameValidationMessage,
   isValidPhoneNumber,
   normalizePhoneNumber,
@@ -430,11 +428,7 @@ export default function AddNewOrder({
         );
       }
 
-      const publicId = initialDraft?.publicId || generatePublicViewerId();
-      const shareableLink = getPublicViewerPath({
-        id: initialDraft?.id || orderNumber,
-        publicId,
-      });
+      const shareableLink = `/view/${orderNumber}`;
 
       if (isEditMode) {
         // Update existing draft to publish
@@ -450,7 +444,6 @@ export default function AddNewOrder({
           logoUrl,
           certificateUrl,
           frames: frameUrls,
-          publicId,
           shareableLink,
           status: "completed",
           updatedAt: now,
@@ -473,7 +466,6 @@ export default function AddNewOrder({
           logoUrl,
           certificateUrl,
           frames: frameUrls,
-          publicId,
           shareableLink,
           status: "completed",
           createdAt: now,

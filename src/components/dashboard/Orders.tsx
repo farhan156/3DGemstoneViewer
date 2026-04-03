@@ -5,11 +5,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { useGemstoneStore } from "@/store/gemstoneStore";
 import type { Gemstone } from "@/types/gemstone";
-import {
-  generatePublicViewerId,
-  generateUniqueOrderNumber,
-  getPublicViewerPath,
-} from "@/lib/utils";
+import { generateUniqueOrderNumber } from "@/lib/utils";
 
 const MIN_FRAMES = 24;
 
@@ -63,17 +59,15 @@ export default function Orders({ onEditOrder }: OrdersProps) {
       return numB - numA;
     });
 
-  const copyLink = (order: Gemstone) => {
-    const path = getPublicViewerPath(order);
-    navigator.clipboard.writeText(window.location.origin + path);
+  const copyLink = (id: string) => {
+    navigator.clipboard.writeText(window.location.origin + "/view/" + id);
     toast.success("Link copied!");
   };
 
-  const sendWhatsApp = (phone: string, order: Gemstone) => {
+  const sendWhatsApp = (phone: string, id: string) => {
     const cleaned = phone.replace(/\D/g, "");
-    const path = getPublicViewerPath(order);
     const message = encodeURIComponent(
-      `Hello! Your 360 jewellery view is ready. View it here: ${window.location.origin}${path}`,
+      `Hello! Your 360 jewellery view is ready. View it here: ${window.location.origin}/view/${id}`,
     );
     window.open(`https://wa.me/${cleaned}?text=${message}`, "_blank");
   };
@@ -109,12 +103,9 @@ export default function Orders({ onEditOrder }: OrdersProps) {
       return;
     }
 
-    const publicId = order.publicId || generatePublicViewerId();
-
     await updateGemstone(order.id, {
       status: "completed",
-      publicId,
-      shareableLink: getPublicViewerPath({ id: order.id, publicId }),
+      shareableLink: `/view/${order.id}`,
       orderNumber:
         order.orderNumber ||
         generateUniqueOrderNumber(
@@ -263,7 +254,7 @@ export default function Orders({ onEditOrder }: OrdersProps) {
                   <div className="flex items-center justify-end gap-1.5">
                     {!isDraft && (
                       <Link
-                        href={getPublicViewerPath(order)}
+                        href={`/view/${order.id}`}
                         target="_blank"
                         title="View"
                         className="w-8 h-8 rounded-lg border border-gray-light hover:bg-gold hover:border-gold hover:text-white text-gray-warm flex items-center justify-center transition-all"
@@ -284,7 +275,7 @@ export default function Orders({ onEditOrder }: OrdersProps) {
 
                     {!isDraft && (
                       <button
-                        onClick={() => copyLink(order)}
+                        onClick={() => copyLink(order.id)}
                         title="Copy link"
                         className="w-8 h-8 rounded-lg border border-gray-light hover:bg-cream text-gray-warm hover:text-charcoal flex items-center justify-center transition-all"
                       >
@@ -304,7 +295,9 @@ export default function Orders({ onEditOrder }: OrdersProps) {
 
                     {!isDraft && (
                       <button
-                        onClick={() => sendWhatsApp(order.customerContact, order)}
+                        onClick={() =>
+                          sendWhatsApp(order.customerContact, order.id)
+                        }
                         title="Send via WhatsApp"
                         className="w-8 h-8 rounded-lg border border-gray-light hover:bg-[#25D366] hover:border-[#25D366] hover:text-white text-gray-warm flex items-center justify-center transition-all"
                       >

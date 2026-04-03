@@ -1,7 +1,7 @@
 'use client';
 
 import { useGemstoneStore } from '@/store/gemstoneStore';
-import { cn, getPublicViewerPath, optimizeCloudinaryUrl } from '@/lib/utils';
+import { cn, optimizeCloudinaryUrl } from '@/lib/utils';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -163,7 +163,7 @@ export default function Gallery() {
                   {gem.status === 'completed' && gem.shareableLink ? (
                     <>
                       <Link
-                        href={getPublicViewerPath(gem)}
+                        href={`/view/${gem.id}`}
                         className="flex-1 h-9 px-4 flex items-center justify-center gap-2 text-sm font-medium bg-gold text-white rounded-lg hover:bg-gold-dark transition-all"
                       >
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -174,7 +174,7 @@ export default function Gallery() {
                       </Link>
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(window.location.origin + getPublicViewerPath(gem));
+                          navigator.clipboard.writeText(window.location.origin + '/view/' + gem.id);
                           toast.success('Link copied to clipboard!');
                         }}
                         title="Copy shareable link"
